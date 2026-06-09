@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* JJAUTO92 Brand */
+  --color-navy: #0D1B2A;
+  --color-navy-800: #162535;
+  --color-navy-700: #1e3a52;
+  --color-navy-600: #26506e;
+  --color-gold: #C9A84C;
+  --color-gold-400: #d4b060;
+  --color-gold-600: #a88430;
+  --color-gold-50: #fdf8ec;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Date/time input styling */
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #0D1B2A; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #C9A84C; }
