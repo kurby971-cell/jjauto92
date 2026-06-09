@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL('/connexion', request.url))
     }
-    const role = user.user_metadata?.role
+    const role = user.app_metadata?.role
     if (role !== 'admin') {
       return NextResponse.redirect(new URL('/', request.url))
     }

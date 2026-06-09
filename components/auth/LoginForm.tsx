@@ -37,7 +37,7 @@ export default function LoginForm() {
     setError(null)
 
     const supabase = createClient()
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
       setError(translateError(authError.message))
@@ -45,8 +45,19 @@ export default function LoginForm() {
       return
     }
 
-    const isAdmin = data.user?.app_metadata?.role === 'admin'
-    const destination = next || (isAdmin ? '/admin' : '/mon-compte')
+    // signInWithPassword ne garantit pas app_metadata côté browser — getUser() est autoritatif
+    const { data: { user } } = await supabase.auth.getUser()
+    const isAdmin = user?.app_metadata?.role === 'admin'
+
+    // Un admin va toujours vers /admin (le param `next` ne le remplace pas,
+    // sauf s'il pointe déjà vers une page admin)
+    let destination: string
+    if (isAdmin) {
+      destination = (next && next.startsWith('/admin')) ? next : '/admin'
+    } else {
+      destination = next || '/mon-compte'
+    }
+
     router.push(destination)
     router.refresh()
   }
