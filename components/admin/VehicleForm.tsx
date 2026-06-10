@@ -325,10 +325,7 @@ export default function VehicleForm({ vehicle }: Props) {
               placeholder="0.25" min="0" step="0.01" />
           </Field>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-          <strong>Note :</strong> Les champs «&nbsp;Prix / semaine&nbsp;» et «&nbsp;Prix / mois&nbsp;» nécessitent
-          la migration SQL <code className="font-mono bg-amber-100 px-1 rounded">supabase/migrations/001_add_vehicle_rate_tiers.sql</code> à appliquer sur Supabase.
-        </div>
+
       </Section>
 
       {/* ── État & Localisation ── */}
