@@ -6,12 +6,32 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!user) {
     redirect('/connexion?next=/admin')
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any
+
+  // Primary: app_metadata lu depuis le JWT via l'API Supabase côté serveur
+  let isAdmin = user.app_metadata?.role === 'admin'
+
+  // Fallback: lecture directe en base via Admin API si le JWT ne contient pas encore le rôle
+  if (!isAdmin) {
+    try {
+      const { data: { user: dbUser }, error } = await db.auth.admin.getUserById(user.id)
+      if (!error && dbUser) {
+        isAdmin = dbUser.app_metadata?.role === 'admin'
+      }
+    } catch {
+      // fallback silencieux — accès refusé si les deux méthodes échouent
+    }
+  }
+
+  if (!isAdmin) {
+    // Utilisateur authentifié mais pas admin → home (pas /connexion pour éviter une boucle)
+    redirect('/')
+  }
 
   const [{ count: pendingCount }, { count: docsCount }] = await Promise.all([
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
