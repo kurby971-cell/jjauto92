@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import type { Vehicle, RentalOption } from '@/lib/types'
 
 export type ReservedPeriod = {
@@ -73,6 +73,17 @@ export async function getActiveRentalOptions(): Promise<RentalOption[]> {
     return []
   }
   return data ?? []
+}
+
+export async function getAllVehicleSlugs(): Promise<{ slug: string }[]> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('is_active', true)
+
+  if (!data) return []
+  return (data as Vehicle[]).map(v => ({ slug: v.slug ?? v.id }))
 }
 
 export async function getUpcomingReservationPeriods(): Promise<ReservedPeriod[]> {

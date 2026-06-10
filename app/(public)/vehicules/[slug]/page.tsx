@@ -5,6 +5,7 @@ import {
   getVehicleBySlug,
   getVehicleUnavailabilities,
   getActiveRentalOptions,
+  getAllVehicleSlugs,
 } from '@/lib/supabase/queries'
 import VehicleGallery from '@/components/vehicles/VehicleGallery'
 import VehicleBookingPanel from '@/components/vehicles/VehicleBookingPanel'
@@ -27,6 +28,10 @@ const FUEL_LABELS: Record<string, string> = {
   electrique: 'Électrique',
   hybride: 'Hybride',
   hybride_rechargeable: 'Hybride plug-in',
+}
+
+export async function generateStaticParams() {
+  return getAllVehicleSlugs()
 }
 
 interface Props {
