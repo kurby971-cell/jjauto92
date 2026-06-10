@@ -1,8 +1,8 @@
-interface Props {
-  params: Promise<{ id: string }>
-}
+import { redirect } from 'next/navigation'
+
+interface Props { params: Promise<{ id: string }> }
 
 export default async function AdminVehiculeDetailPage({ params }: Props) {
   const { id } = await params
-  return <div>Véhicule {id}</div>
+  redirect(`/admin/vehicules/${id}/edit`)
 }

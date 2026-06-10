@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import StatusBadge from './StatusBadge'
 
 export interface VehicleRow {
@@ -42,7 +43,24 @@ export default function FleetGrid({ vehicles }: { vehicles: VehicleRow[] }) {
   const [statusModal, setStatusModal] = useState<VehicleRow | null>(null)
   const [newStatus, setNewStatus] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [deleteConfirm, setDeleteConfirm] = useState<VehicleRow | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const days14 = getNext14Days()
+
+  async function handleDelete(v: VehicleRow) {
+    setDeleting(v.id)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/admin/vehicles/${v.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) { setDeleteError(data.error ?? 'Erreur suppression'); return }
+      setDeleteConfirm(null)
+      router.refresh()
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   const filtered = filterStatus === 'all'
     ? vehicles
@@ -128,14 +146,28 @@ export default function FleetGrid({ vehicles }: { vehicles: VehicleRow[] }) {
                   <p className="text-gray-400 text-xs mt-0.5">{v.current_mileage.toLocaleString('fr-FR')} km</p>
                 </div>
 
-                {/* Action */}
-                <button
-                  onClick={() => { setStatusModal(v); setNewStatus(v.status) }}
-                  disabled={loading === v.id}
-                  className="shrink-0 px-3 py-1.5 border border-gray-200 hover:border-gray-300 text-gray-600 text-xs font-semibold rounded-lg transition-colors"
-                >
-                  Modifier statut
-                </button>
+                {/* Actions */}
+                <div className="shrink-0 flex items-center gap-2">
+                  <button
+                    onClick={() => { setStatusModal(v); setNewStatus(v.status) }}
+                    disabled={loading === v.id}
+                    className="px-3 py-1.5 border border-gray-200 hover:border-gray-300 text-gray-600 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Statut
+                  </button>
+                  <Link
+                    href={`/admin/vehicules/${v.id}/edit`}
+                    className="px-3 py-1.5 bg-[#0D1B2A] text-white text-xs font-semibold rounded-lg hover:bg-[#1a2d45] transition-colors"
+                  >
+                    Éditer
+                  </Link>
+                  <button
+                    onClick={() => { setDeleteConfirm(v); setDeleteError(null) }}
+                    className="px-3 py-1.5 border border-red-200 text-red-500 text-xs font-semibold rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </div>
 
               {/* 14-day occupation calendar */}
@@ -189,6 +221,38 @@ export default function FleetGrid({ vehicles }: { vehicles: VehicleRow[] }) {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="font-extrabold text-[#0D1B2A] text-lg mb-1">
+              Supprimer ce véhicule ?
+            </h3>
+            <p className="text-gray-500 text-sm mb-1">
+              {deleteConfirm.brand} {deleteConfirm.model} {deleteConfirm.year} — {deleteConfirm.license_plate}
+            </p>
+            <p className="text-xs text-red-500 mb-4">Cette action est irréversible. Les photos seront également supprimées.</p>
+            {deleteError && <p className="text-red-600 text-xs mb-3 font-semibold">{deleteError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeleteConfirm(null); setDeleteError(null) }}
+                disabled={!!deleting}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                disabled={!!deleting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-extrabold hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Suppression…' : 'Oui, supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status modal */}
       {statusModal && (
