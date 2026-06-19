@@ -107,6 +107,7 @@ export async function getAllVehicleSlugs(): Promise<{ slug: string }[]> {
       .from('vehicles')
       .select('id, slug')
       .eq('is_active', true)
+      .returns<{ id: string; slug: string | null }[]>()
 
     if (!data) return []
     return data.map(v => ({ slug: v.slug ?? v.id }))
