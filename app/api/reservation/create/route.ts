@@ -28,7 +28,8 @@ export async function POST(request: Request) {
   let body: CreateBody
   try {
     body = await request.json()
-  } catch {
+  } catch (err) {
+    console.error('[reservation/create] parse body:', err)
     return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
   }
 
@@ -41,11 +42,15 @@ export async function POST(request: Request) {
   const db = createAdminClient() as any
 
   // 1. Verify availability
-  const { data: available } = await db.rpc('is_vehicle_available', {
+  const { data: available, error: availErr } = await db.rpc('is_vehicle_available', {
     p_vehicle_id: vehicleId,
     p_start_date: dateStart,
     p_end_date: dateEnd,
   })
+  if (availErr) {
+    console.error('[reservation/create] is_vehicle_available:', availErr)
+    return NextResponse.json({ error: availErr.message }, { status: 500 })
+  }
   if (available === false) {
     return NextResponse.json({ error: 'Véhicule non disponible sur ces dates' }, { status: 409 })
   }
@@ -57,7 +62,8 @@ export async function POST(request: Request) {
     .eq('id', vehicleId)
     .single()
   if (vErr || !vehicle) {
-    return NextResponse.json({ error: 'Véhicule introuvable' }, { status: 404 })
+    console.error('[reservation/create] vehicle fetch:', vErr)
+    return NextResponse.json({ error: vErr?.message ?? 'Véhicule introuvable' }, { status: 404 })
   }
 
   // 3. Compute amounts server-side
@@ -125,8 +131,8 @@ export async function POST(request: Request) {
       rgpd_consent_date: new Date().toISOString(),
     }).select('id').single()
     if (custErr || !newCust) {
-      console.error('[reservation/create] customer:', custErr?.message)
-      return NextResponse.json({ error: 'Erreur création client' }, { status: 500 })
+      console.error('[reservation/create] customer insert:', custErr)
+      return NextResponse.json({ error: custErr?.message ?? 'Erreur création client' }, { status: 500 })
     }
     customerId = newCust.id
   }
@@ -162,8 +168,8 @@ export async function POST(request: Request) {
     .single()
 
   if (resErr || !reservation) {
-    console.error('[reservation/create] reservation:', resErr?.message)
-    return NextResponse.json({ error: 'Erreur création réservation' }, { status: 500 })
+    console.error('[reservation/create] reservation insert:', resErr)
+    return NextResponse.json({ error: resErr?.message ?? 'Erreur création réservation' }, { status: 500 })
   }
 
   // 6. Create Stripe PaymentIntent
@@ -181,9 +187,10 @@ export async function POST(request: Request) {
       description: `Réservation ${reservation.reservation_number} — JJ AUTO 92`,
     })
   } catch (err) {
-    console.error('[reservation/create] stripe:', err)
+    console.error('[reservation/create] stripe paymentIntent:', err)
     await db.from('reservations').delete().eq('id', reservation.id)
-    return NextResponse.json({ error: 'Erreur initialisation paiement' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Erreur initialisation paiement'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
   // 7. Create payment record
@@ -199,10 +206,10 @@ export async function POST(request: Request) {
     metadata: {},
   })
   if (payErr) {
-    console.error('[reservation/create] payments insert:', payErr.message)
+    console.error('[reservation/create] payments insert:', payErr)
     await db.from('reservations').delete().eq('id', reservation.id)
     try { await getStripe().paymentIntents.cancel(paymentIntent.id) } catch {}
-    return NextResponse.json({ error: 'Erreur création dossier paiement' }, { status: 500 })
+    return NextResponse.json({ error: payErr.message }, { status: 500 })
   }
 
   // Notify Make.com — fire-and-forget (logs URL, payload et status dans notify.ts)
