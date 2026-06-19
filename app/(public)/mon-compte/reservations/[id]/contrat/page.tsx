@@ -42,7 +42,7 @@ export default async function ContratPage({ params }: { params: { id: string } }
       base_amount,options_amount,total_amount,deposit_amount,
       total_days,status,notes,
       vehicles(brand,model,year,license_plate,category,fuel_type,transmission,included_km),
-      customers(first_name,last_name,email,phone,driving_license_number,address_line1,address_city,address_postal_code)
+      customers(first_name,last_name,email,phone,driving_license_number,address_street,address_city,address_postal_code)
     `)
     .eq('id', params.id)
     .eq('customer_id', customer.id)
@@ -113,7 +113,7 @@ export default async function ContratPage({ params }: { params: { id: string } }
               <p className="font-bold text-[#0D1B2A]">{r.customers?.first_name} {r.customers?.last_name}</p>
               <p className="text-gray-600">{r.customers?.email}</p>
               <p className="text-gray-600">{r.customers?.phone}</p>
-              {r.customers?.address_line1 && <p className="text-gray-600 mt-1">{r.customers.address_line1}</p>}
+              {r.customers?.address_street && <p className="text-gray-600 mt-1">{r.customers.address_street}</p>}
               {r.customers?.address_city && (
                 <p className="text-gray-600">{r.customers.address_postal_code} {r.customers.address_city}</p>
               )}

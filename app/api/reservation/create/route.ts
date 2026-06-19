@@ -91,7 +91,11 @@ export async function POST(request: Request) {
 
   // 4. Upsert customer by email
   const emailNorm = driver.email.toLowerCase().trim()
-  const { data: existing } = await db.from('customers').select('id').eq('email', emailNorm).maybeSingle()
+  const { data: existing } = await db.from('customers').select('id, is_blacklisted').eq('email', emailNorm).maybeSingle()
+
+  if (existing?.is_blacklisted) {
+    return NextResponse.json({ error: 'Réservation non autorisée. Contactez-nous au 07 61 42 21 92.' }, { status: 403 })
+  }
 
   let customerId: string
   if (existing) {
@@ -100,6 +104,7 @@ export async function POST(request: Request) {
       first_name: driver.firstName,
       last_name: driver.lastName,
       phone: driver.phone,
+      date_of_birth: driver.dateOfBirth || null,
       driving_license_number: driver.licenseNumber || null,
     }).eq('id', customerId)
   } else {
@@ -142,6 +147,7 @@ export async function POST(request: Request) {
       base_amount: baseAmount,
       options_amount: optionsAmount,
       discount_amount: 0,
+      total_days: nbDays,
       total_amount: totalAmount,
       deposit_amount: depositAmount,
       options: optionsCodes,
@@ -181,7 +187,7 @@ export async function POST(request: Request) {
   }
 
   // 7. Create payment record
-  await db.from('payments').insert({
+  const { error: payErr } = await db.from('payments').insert({
     reservation_id: reservation.id,
     customer_id: customerId,
     stripe_payment_intent_id: paymentIntent.id,
@@ -192,6 +198,12 @@ export async function POST(request: Request) {
     refund_amount: 0,
     metadata: {},
   })
+  if (payErr) {
+    console.error('[reservation/create] payments insert:', payErr.message)
+    await db.from('reservations').delete().eq('id', reservation.id)
+    try { await getStripe().paymentIntents.cancel(paymentIntent.id) } catch {}
+    return NextResponse.json({ error: 'Erreur création dossier paiement' }, { status: 500 })
+  }
 
   // Notify Make.com (fire-and-forget, never blocks the response)
   const { data: vInfo } = await db

@@ -9,7 +9,7 @@ interface Customer {
   last_name: string
   email: string
   phone: string
-  address_line1: string
+  address_street: string
   address_city: string
   address_postal_code: string
 }
@@ -24,7 +24,7 @@ export default function ProfilForm({ customer, userEmail }: Props) {
     first_name: customer?.first_name ?? '',
     last_name: customer?.last_name ?? '',
     phone: customer?.phone ?? '',
-    address_line1: customer?.address_line1 ?? '',
+    address_street: customer?.address_street ?? '',
     address_city: customer?.address_city ?? '',
     address_postal_code: customer?.address_postal_code ?? '',
   })
@@ -131,7 +131,7 @@ export default function ProfilForm({ customer, userEmail }: Props) {
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Adresse</label>
-            <input type="text" value={form.address_line1} onChange={(e) => set('address_line1', e.target.value)} className={inputClass} placeholder="1 rue de la Paix" />
+            <input type="text" value={form.address_street} onChange={(e) => set('address_street', e.target.value)} className={inputClass} placeholder="1 rue de la Paix" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -226,7 +226,7 @@ export default function ProfilForm({ customer, userEmail }: Props) {
         </a>
         <p className="text-xs text-gray-400 mt-3">
           Consultez notre{' '}
-          <a href="/politique-de-confidentialite" className="underline hover:text-gray-600">politique de confidentialité</a>
+          <a href="/confidentialite" className="underline hover:text-gray-600">politique de confidentialité</a>
           {' '}pour plus d'informations.
         </p>
       </div>

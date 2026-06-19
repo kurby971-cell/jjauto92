@@ -10,7 +10,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { first_name, last_name, phone, address_line1, address_city, address_postal_code } = body
+  const { first_name, last_name, phone, address_street, address_city, address_postal_code } = body
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any
@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest) {
         first_name: first_name ?? undefined,
         last_name: last_name ?? undefined,
         phone: phone ?? undefined,
-        address_line1: address_line1 ?? undefined,
+        address_street: address_street ?? undefined,
         address_city: address_city ?? undefined,
         address_postal_code: address_postal_code ?? undefined,
         updated_at: new Date().toISOString(),

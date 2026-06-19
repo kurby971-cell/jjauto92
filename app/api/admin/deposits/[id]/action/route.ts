@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin-guard'
+import { getStripe } from '@/lib/stripe/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -30,8 +31,15 @@ export async function POST(
     if (deposit.status !== 'authorized') {
       return NextResponse.json({ error: 'Seules les cautions autorisées peuvent être libérées' }, { status: 409 })
     }
-    // TODO: Call Stripe to cancel the payment intent hold
-    // await stripe.paymentIntents.cancel(deposit.stripe_payment_intent_id)
+
+    if (deposit.stripe_payment_intent_id) {
+      try {
+        await getStripe().paymentIntents.cancel(deposit.stripe_payment_intent_id)
+      } catch (stripeErr: unknown) {
+        const msg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr)
+        return NextResponse.json({ error: `Stripe : ${msg}` }, { status: 502 })
+      }
+    }
 
     const { error: upErr } = await db
       .from('deposits')
@@ -47,8 +55,17 @@ export async function POST(
     }
     const amount = capture_amount ?? deposit.amount
     const isPartial = amount < deposit.amount
-    // TODO: Call Stripe to capture the payment intent
-    // await stripe.paymentIntents.capture(deposit.stripe_payment_intent_id, { amount_to_capture: Math.round(amount * 100) })
+
+    if (deposit.stripe_payment_intent_id) {
+      try {
+        await getStripe().paymentIntents.capture(deposit.stripe_payment_intent_id, {
+          amount_to_capture: Math.round(amount * 100),
+        })
+      } catch (stripeErr: unknown) {
+        const msg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr)
+        return NextResponse.json({ error: `Stripe : ${msg}` }, { status: 502 })
+      }
+    }
 
     const { error: upErr } = await db
       .from('deposits')

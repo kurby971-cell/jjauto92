@@ -24,7 +24,7 @@ export default function Step3Payment({ vehicle, draft }: Props) {
   const [ready, setReady] = useState(false)
 
   const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+    new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
 
   async function handlePay() {
     if (!stripe || !elements || !cgvAccepted || !draft.reservationId) return
@@ -119,11 +119,11 @@ export default function Step3Payment({ vehicle, draft }: Props) {
         />
         <span className="text-sm text-gray-600 leading-relaxed">
           J'accepte les{' '}
-          <a href="#" target="_blank" className="text-navy font-semibold underline underline-offset-2 hover:text-gold transition-colors">
+          <a href="/cgv" target="_blank" className="text-navy font-semibold underline underline-offset-2 hover:text-gold transition-colors">
             Conditions Générales de Location
           </a>{' '}
           et la{' '}
-          <a href="#" target="_blank" className="text-navy font-semibold underline underline-offset-2 hover:text-gold transition-colors">
+          <a href="/confidentialite" target="_blank" className="text-navy font-semibold underline underline-offset-2 hover:text-gold transition-colors">
             Politique de confidentialité
           </a>{' '}
           de JJ AUTO 92. Je confirme que les informations fournies sont exactes.

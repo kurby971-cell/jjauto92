@@ -6,7 +6,7 @@ export async function getCustomerByUser(userId: string, userEmail: string) {
 
   const { data: customer } = await db
     .from('customers')
-    .select('id,first_name,last_name,email,phone,address_line1,address_city,address_postal_code,address_country,driving_license_number,driving_license_expiry,is_verified,is_blacklisted,total_reservations,total_spent,auth_user_id,admin_notes')
+    .select('id,first_name,last_name,email,phone,address_street,address_city,address_postal_code,address_country,driving_license_number,driving_license_expiry,is_verified,is_blacklisted,total_reservations,total_spent,auth_user_id,admin_notes')
     .eq('auth_user_id', userId)
     .maybeSingle()
 
@@ -15,7 +15,7 @@ export async function getCustomerByUser(userId: string, userEmail: string) {
   // Link existing customer by email
   const { data: byEmail } = await db
     .from('customers')
-    .select('id,first_name,last_name,email,phone,address_line1,address_city,address_postal_code,address_country,driving_license_number,driving_license_expiry,is_verified,is_blacklisted,total_reservations,total_spent,auth_user_id,admin_notes')
+    .select('id,first_name,last_name,email,phone,address_street,address_city,address_postal_code,address_country,driving_license_number,driving_license_expiry,is_verified,is_blacklisted,total_reservations,total_spent,auth_user_id,admin_notes')
     .eq('email', userEmail)
     .maybeSingle()
 
