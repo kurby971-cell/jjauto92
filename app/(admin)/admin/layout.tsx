@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import AdminAutoRefresh from '@/components/admin/AdminAutoRefresh'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -33,10 +34,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/')
   }
 
-  const [{ count: pendingCount }, { count: docsCount }] = await Promise.all([
+  const [{ count: pendingCount }, activeCustResult] = await Promise.all([
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    db.from('customers').select('*', { count: 'exact', head: true }).eq('is_verified', false),
+    db.from('reservations').select('customer_id').in('status', ['pending', 'confirmed']),
   ])
+
+  const activeCustIds = [
+    ...new Set(
+      ((activeCustResult.data ?? []) as { customer_id: string }[])
+        .map(r => r.customer_id)
+        .filter(Boolean)
+    ),
+  ]
+
+  let docsCount = 0
+  if (activeCustIds.length > 0) {
+    const { count } = await db
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_verified', false)
+      .in('id', activeCustIds)
+    docsCount = count ?? 0
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -46,7 +65,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         userEmail={user.email ?? ''}
       />
       <div className="flex-1 min-w-0 overflow-auto">
-        <main className="p-6 lg:p-8 min-h-screen">{children}</main>
+        <main className="p-6 lg:p-8 min-h-screen">
+          <AdminAutoRefresh />
+          {children}
+        </main>
       </div>
     </div>
   )

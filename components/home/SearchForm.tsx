@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import DatePickerInput from '@/components/ui/DatePickerInput'
 
 function todayStr() {
   return new Date().toISOString().split('T')[0]
@@ -52,13 +53,11 @@ export default function SearchForm() {
           <label className="block text-gold text-[10px] font-bold uppercase tracking-widest mb-1.5">
             Départ
           </label>
-          <input
-            type="date"
+          <DatePickerInput
             value={from}
             min={todayStr()}
-            onChange={(e) => handleFromChange(e.target.value)}
-            className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-gold transition-colors"
-            required
+            onChange={handleFromChange}
+            variant="dark"
           />
         </div>
 
@@ -80,13 +79,11 @@ export default function SearchForm() {
           <label className="block text-gold text-[10px] font-bold uppercase tracking-widest mb-1.5">
             Retour
           </label>
-          <input
-            type="date"
+          <DatePickerInput
             value={to}
             min={from || todayStr()}
-            onChange={(e) => setTo(e.target.value)}
-            className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-gold transition-colors"
-            required
+            onChange={setTo}
+            variant="dark"
           />
         </div>
 

@@ -201,18 +201,21 @@ export async function POST(request: Request) {
     .single()
 
   notifyMakeReservationCreated({
-    reservationId: reservation.id,
-    reservationNumber: reservation.reservation_number,
-    vehicleBrand: vInfo?.brand ?? '',
-    vehicleModel: vInfo?.model ?? '',
-    customerFirstName: driver.firstName,
-    customerLastName: driver.lastName,
-    customerEmail: driver.email,
-    customerPhone: driver.phone,
-    startDate: dateStart,
-    endDate: dateEnd,
-    totalAmount,
+    reference: reservation.reservation_number,
+    created_at: new Date().toISOString(),
+    customer_name: `${driver.firstName} ${driver.lastName}`,
+    customer_phone: driver.phone,
+    vehicle_name: `${vInfo?.brand ?? ''} ${vInfo?.model ?? ''}`.trim(),
+    start_date: dateStart,
+    end_date: dateEnd,
+    pickup_time: '09:00',
+    return_time: '18:00',
+    delivery_address: '1 Allée de Lorraine, 92000 Nanterre',
+    duration_days: nbDays,
+    total_price: totalAmount,
+    deposit_amount: depositAmount,
     status: 'pending',
+    notes_admin: null,
   })
 
   return NextResponse.json({

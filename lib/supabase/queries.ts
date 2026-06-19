@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import type { Vehicle, RentalOption } from '@/lib/types'
 
 export type ReservedPeriod = {
@@ -9,8 +9,8 @@ export type ReservedPeriod = {
 
 export async function getActiveVehicles(): Promise<Vehicle[]> {
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const db = createAdminClient()
+    const { data, error } = await db
       .from('vehicles')
       .select('*')
       .eq('is_active', true)
@@ -21,7 +21,7 @@ export async function getActiveVehicles(): Promise<Vehicle[]> {
       console.error('[getActiveVehicles]', error.message)
       return []
     }
-    return data ?? []
+    return (data ?? []) as Vehicle[]
   } catch (err) {
     console.error('[getActiveVehicles] fetch error:', err instanceof Error ? err.message : err)
     return []
@@ -32,11 +32,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function getVehicleBySlug(slug: string): Promise<Vehicle | null> {
   try {
-    const supabase = await createClient()
+    const db = createAdminClient()
     const filter = UUID_RE.test(slug)
       ? `slug.eq.${slug},id.eq.${slug}`
       : `slug.eq.${slug}`
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('vehicles')
       .select('*')
       .eq('is_active', true)
@@ -44,7 +44,7 @@ export async function getVehicleBySlug(slug: string): Promise<Vehicle | null> {
       .single()
 
     if (error) return null
-    return data
+    return data as Vehicle
   } catch (err) {
     console.error('[getVehicleBySlug] fetch error:', err instanceof Error ? err.message : err)
     return null
@@ -59,10 +59,10 @@ export type UnavailabilityPeriod = {
 
 export async function getVehicleUnavailabilities(vehicleId: string): Promise<UnavailabilityPeriod[]> {
   try {
-    const supabase = await createClient()
+    const db = createAdminClient()
     const today = new Date().toISOString().split('T')[0]
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('vehicle_unavailability')
       .select('start_date, end_date, reason')
       .eq('vehicle_id', vehicleId)
@@ -82,8 +82,8 @@ export async function getVehicleUnavailabilities(vehicleId: string): Promise<Una
 
 export async function getActiveRentalOptions(): Promise<RentalOption[]> {
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const db = createAdminClient()
+    const { data, error } = await db
       .from('rental_options')
       .select('*')
       .eq('is_active', true)
@@ -119,10 +119,10 @@ export async function getAllVehicleSlugs(): Promise<{ slug: string }[]> {
 
 export async function getUpcomingReservationPeriods(): Promise<ReservedPeriod[]> {
   try {
-    const supabase = await createClient()
+    const db = createAdminClient()
     const today = new Date().toISOString().split('T')[0]
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('reservations')
       .select('vehicle_id, start_date, end_date')
       .in('status', ['pending', 'confirmed', 'active'])

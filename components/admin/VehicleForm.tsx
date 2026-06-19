@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoGallery from './PhotoGallery'
 import type { Vehicle, VehicleCategory, FuelType, TransmissionType, VehicleStatus } from '@/lib/types'
+import DatePickerInput from '@/components/ui/DatePickerInput'
 
 // ── Field helpers ────────────────────────────────────────────────────────────
 function Field({
@@ -363,10 +364,10 @@ export default function VehicleForm({ vehicle }: Props) {
             <Input value={insurancePolicy} onChange={e => setInsurancePolicy(e.target.value)} placeholder="ASS-123456" />
           </Field>
           <Field label="Expiration assurance">
-            <Input type="date" value={insuranceExpiry} onChange={e => setInsuranceExpiry(e.target.value)} />
+            <DatePickerInput value={insuranceExpiry} onChange={setInsuranceExpiry} placeholder="Choisir une date" />
           </Field>
           <Field label="Prochain contrôle technique">
-            <Input type="date" value={technicalInspection} onChange={e => setTechnicalInspection(e.target.value)} />
+            <DatePickerInput value={technicalInspection} onChange={setTechnicalInspection} placeholder="Choisir une date" />
           </Field>
         </div>
       </Section>

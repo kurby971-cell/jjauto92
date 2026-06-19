@@ -16,14 +16,15 @@ function isoFromParts(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
+// Parse as UTC midnight so toISOString() always returns the same calendar date
+// regardless of the browser's local timezone (critical for UTC+ timezones like France).
 function dateFromISO(iso: string) {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d)
+  return new Date(iso + 'T00:00:00Z')
 }
 
 function addDays(iso: string, n: number) {
   const d = dateFromISO(iso)
-  d.setDate(d.getDate() + n)
+  d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().split('T')[0]
 }
 
@@ -38,7 +39,7 @@ function buildBlockedSet(periods: UnavailabilityPeriod[]) {
     const end = dateFromISO(end_date)
     while (cur <= end) {
       set.add(cur.toISOString().split('T')[0])
-      cur.setDate(cur.getDate() + 1)
+      cur.setUTCDate(cur.getUTCDate() + 1)
     }
   }
   return set
@@ -46,11 +47,11 @@ function buildBlockedSet(periods: UnavailabilityPeriod[]) {
 
 function hasBlockedInRange(start: string, end: string, blocked: Set<string>) {
   const cur = dateFromISO(start)
-  cur.setDate(cur.getDate() + 1)
+  cur.setUTCDate(cur.getUTCDate() + 1)
   const endDate = dateFromISO(end)
   while (cur < endDate) {
     if (blocked.has(cur.toISOString().split('T')[0])) return true
-    cur.setDate(cur.getDate() + 1)
+    cur.setUTCDate(cur.getUTCDate() + 1)
   }
   return false
 }
@@ -71,7 +72,10 @@ interface Props {
 }
 
 export default function VehicleBookingPanel({ vehicle, options, unavailabilities }: Props) {
-  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const today = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
   const nowMonth = useMemo(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)

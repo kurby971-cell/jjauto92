@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import VehicleCard from './VehicleCard'
 import type { Vehicle, VehicleCategory } from '@/lib/types'
 import type { ReservedPeriod } from '@/lib/supabase/queries'
+import DatePickerInput from '@/components/ui/DatePickerInput'
 
 const CATEGORIES: { value: VehicleCategory | ''; label: string }[] = [
   { value: '', label: 'Tous' },
@@ -136,28 +137,26 @@ export default function VehiclesCatalog({ vehicles, reservedPeriods }: Props) {
               {/* Date début */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Départ</label>
-                <input
-                  type="date"
-                  min={today}
+                <DatePickerInput
                   value={dateStart}
-                  onChange={(e) => {
-                    setDateStart(e.target.value)
-                    if (dateEnd && e.target.value > dateEnd) setDateEnd('')
+                  min={today}
+                  onChange={(v) => {
+                    setDateStart(v)
+                    if (dateEnd && v > dateEnd) setDateEnd('')
                   }}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold w-40"
+                  className="w-40"
                 />
               </div>
 
               {/* Date retour */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Retour</label>
-                <input
-                  type="date"
-                  min={dateStart || today}
+                <DatePickerInput
                   value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  min={dateStart || today}
+                  onChange={setDateEnd}
                   disabled={!dateStart}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold w-40 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-40"
                 />
               </div>
 

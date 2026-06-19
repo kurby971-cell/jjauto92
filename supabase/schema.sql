@@ -939,7 +939,7 @@ CREATE POLICY "vehicles_public_read" ON vehicles
 
 CREATE POLICY "vehicles_admin_all" ON vehicles
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Customers: client gère son propre profil, admin tout
@@ -959,7 +959,7 @@ CREATE POLICY "customers_own_insert" ON customers
 
 CREATE POLICY "customers_admin_all" ON customers
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Reservations: client voit ses réservations, admin tout
@@ -978,7 +978,7 @@ CREATE POLICY "reservations_own_insert" ON reservations
 
 CREATE POLICY "reservations_admin_all" ON reservations
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Payments: client voit ses paiements, admin tout
@@ -991,7 +991,7 @@ CREATE POLICY "payments_own_select" ON payments
 
 CREATE POLICY "payments_admin_all" ON payments
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Deposits: client voit sa caution, admin tout
@@ -1004,7 +1004,7 @@ CREATE POLICY "deposits_own_select" ON deposits
 
 CREATE POLICY "deposits_admin_all" ON deposits
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Documents: client gère ses documents, admin tout
@@ -1023,7 +1023,7 @@ CREATE POLICY "documents_own_insert" ON documents
 
 CREATE POLICY "documents_admin_all" ON documents
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Vehicle Unavailability: lecture publique (calendrier), admin tout
@@ -1034,7 +1034,7 @@ CREATE POLICY "unavailability_public_read" ON vehicle_unavailability
 
 CREATE POLICY "unavailability_admin_all" ON vehicle_unavailability
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Rental Options: lecture publique, admin tout
@@ -1045,14 +1045,14 @@ CREATE POLICY "rental_options_public_read" ON rental_options
 
 CREATE POLICY "rental_options_admin_all" ON rental_options
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- -------------------------------------------------------
 -- Pricing Rules: admin seulement (données sensibles)
 -- -------------------------------------------------------
 CREATE POLICY "pricing_rules_admin_all" ON pricing_rules
   FOR ALL
-  USING ((auth.jwt() ->> 'role') = 'admin');
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 
 -- ============================================================

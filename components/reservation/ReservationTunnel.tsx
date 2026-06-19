@@ -64,15 +64,18 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
     try {
       const saved = localStorage.getItem(LS_KEY)
       if (saved) {
-        const parsed: ReservationDraft = JSON.parse(saved)
+        const parsed = JSON.parse(saved)
         if (parsed.vehicleId === vehicle.id) {
-          // Restore draft but override dates from URL if provided
+          // Extract _clientSecret before spreading into draft (not part of ReservationDraft type)
+          const { _clientSecret: savedCs, ...draftData } = parsed as ReservationDraft & { _clientSecret?: string }
           setDraft({
-            ...parsed,
-            dateStart: initialDateStart ?? parsed.dateStart,
-            dateEnd: initialDateEnd ?? parsed.dateEnd,
+            ...draftData,
+            dateStart: initialDateStart ?? draftData.dateStart,
+            dateEnd: initialDateEnd ?? draftData.dateEnd,
           })
-          setStep(parsed.lastStep ?? 1)
+          setStep(draftData.lastStep ?? 1)
+          // Restore clientSecret so step 3 works after a page refresh
+          if (savedCs) setClientSecret(savedCs)
           return
         }
       }
@@ -80,10 +83,16 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
     setDraft(buildInitialDraft(vehicle, initialDateStart, initialDateEnd))
   }, [vehicle?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist draft to localStorage
+  // Persist draft to localStorage — clientSecret stored under _clientSecret so it
+  // survives page refreshes while step 3 is active (Stripe PI client secrets are
+  // safe for short-term client-side storage; they don't grant server-side access)
   useEffect(() => {
-    if (draft) localStorage.setItem(LS_KEY, JSON.stringify({ ...draft, lastStep: step }))
-  }, [draft, step])
+    if (draft) {
+      const data: Record<string, unknown> = { ...draft, lastStep: step }
+      if (clientSecret) data._clientSecret = clientSecret
+      localStorage.setItem(LS_KEY, JSON.stringify(data))
+    }
+  }, [draft, step, clientSecret])
 
   const updateDraft = useCallback((updates: Partial<ReservationDraft>) => {
     setDraft((prev) => prev ? { ...prev, ...updates } : prev)
@@ -125,6 +134,9 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
       if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
       const { clientSecret: cs, reservationId, reservationNumber } = json
+      if (!cs) {
+        throw new Error('Erreur d\'initialisation du paiement (client secret manquant). Veuillez réessayer.')
+      }
       setClientSecret(cs)
       updateDraft({ reservationId, reservationNumber })
       setStep(3)

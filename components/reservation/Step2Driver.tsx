@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import type { ReservationDraft, DriverData, DocumentRefs } from './types'
+import DatePickerInput from '@/components/ui/DatePickerInput'
 
 interface Props {
   draft: ReservationDraft
@@ -143,7 +144,15 @@ export default function Step2Driver({ draft, onComplete, onBack, loading }: Prop
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date de naissance * <span className="text-gray-400 font-normal">(21 ans minimum)</span></label>
-            <input type="date" value={form.dateOfBirth} onChange={f('dateOfBirth')} max={maxDob} className={FIELD_CLASSES} autoComplete="bday" />
+            <DatePickerInput
+              value={form.dateOfBirth}
+              max={maxDob}
+              placeholder="JJ Mois AAAA"
+              onChange={(v) => {
+                setForm(p => ({ ...p, dateOfBirth: v }))
+                setErrors(p => ({ ...p, dateOfBirth: undefined }))
+              }}
+            />
             {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
           </div>
 

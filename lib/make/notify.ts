@@ -1,28 +1,35 @@
 async function postToMake(url: string, payload: object): Promise<void> {
+  console.log('[Make] → POST', url)
+  console.log('[Make] payload', JSON.stringify(payload, null, 2))
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-  } catch {
-    // Never fail the main flow if Make is unreachable
+    const body = await res.text()
+    console.log(`[Make] ${res.status} — ${body}`)
+  } catch (err) {
+    console.error('[Make] fetch failed:', err)
   }
 }
 
 export async function notifyMakeReservationCreated(payload: {
-  reservationId: string
-  reservationNumber: string
-  vehicleBrand: string
-  vehicleModel: string
-  customerFirstName: string
-  customerLastName: string
-  customerEmail: string
-  customerPhone: string
-  startDate: string
-  endDate: string
-  totalAmount: number
+  reference: string
+  created_at: string
+  customer_name: string
+  customer_phone: string
+  vehicle_name: string
+  start_date: string
+  end_date: string
+  pickup_time: string
+  return_time: string
+  delivery_address: string
+  duration_days: number
+  total_price: number
+  deposit_amount: number
   status: string
+  notes_admin: string | null
 }) {
   const url = process.env.MAKE_WEBHOOK_URL_RESERVATION
   if (!url) return

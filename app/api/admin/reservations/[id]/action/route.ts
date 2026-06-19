@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin-guard'
 import { NextResponse } from 'next/server'
 
-type Action = 'confirm' | 'cancel' | 'start' | 'complete'
+type Action = 'confirm' | 'cancel' | 'start' | 'complete' | 'delete'
 
 interface ActionBody {
   action: Action
@@ -117,6 +117,21 @@ export async function POST(
     if (body.mileage_end !== undefined) vehicleUpdate.current_mileage = body.mileage_end
     await db.from('vehicles').update(vehicleUpdate).eq('id', res.vehicle_id)
 
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === 'delete') {
+    // Release vehicle if it was in active rental
+    if (res.status === 'active') {
+      await db.from('vehicles').update({ status: 'disponible' }).eq('id', res.vehicle_id)
+    }
+    // Delete FK-RESTRICT child records before deleting reservation
+    // (vehicle_unavailability and documents cascade automatically per schema)
+    await db.from('payments').delete().eq('reservation_id', id)
+    await db.from('deposits').delete().eq('reservation_id', id)
+
+    const { error: delErr } = await db.from('reservations').delete().eq('id', id)
+    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
     return NextResponse.json({ success: true })
   }
 

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import Image from 'next/image'
+import { useState, useMemo } from 'react'
 import type { Vehicle, RentalOption } from '@/lib/types'
 import type { ReservationDraft } from './types'
+import DatePickerInput from '@/components/ui/DatePickerInput'
 
 const FUEL_LABELS: Record<string, string> = {
   essence: 'Essence', diesel: 'Diesel', electrique: 'Électrique',
@@ -109,26 +109,22 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date de départ</label>
-            <input
-              type="date"
-              min={today}
+            <DatePickerInput
               value={dateStart}
-              onChange={(e) => {
-                setDateStart(e.target.value)
-                if (dateEnd && e.target.value >= dateEnd) setDateEnd('')
+              min={today}
+              onChange={(v) => {
+                setDateStart(v)
+                if (dateEnd && v >= dateEnd) setDateEnd('')
               }}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date de retour</label>
-            <input
-              type="date"
-              min={dateStart ? (() => { const d = new Date(dateStart); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0] })() : today}
+            <DatePickerInput
               value={dateEnd}
+              min={dateStart ? (() => { const d = new Date(dateStart + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().split('T')[0] })() : today}
               disabled={!dateStart}
-              onChange={(e) => setDateEnd(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold disabled:opacity-40 disabled:cursor-not-allowed"
+              onChange={setDateEnd}
             />
           </div>
         </div>
