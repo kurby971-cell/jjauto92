@@ -1,6 +1,6 @@
 // Types générés depuis schema.sql JJAUTO92
 
-export type VehicleCategory = 'economy' | 'compact' | 'standard' | 'suv' | 'premium' | 'luxury' | 'utility'
+export type VehicleCategory = 'economy' | 'compact' | 'standard' | 'suv' | 'premium' | 'luxury' | 'utility' | 'sport'
 export type FuelType = 'essence' | 'diesel' | 'electrique' | 'hybride' | 'hybride_rechargeable'
 export type TransmissionType = 'manuelle' | 'automatique'
 export type VehicleStatus = 'disponible' | 'en_location' | 'en_maintenance' | 'hors_service'
@@ -27,6 +27,9 @@ export interface Vehicle {
   seats: number
   doors: number
   daily_rate: number
+  weekend_rate: number | null
+  weekly_rate: number | null
+  monthly_rate: number | null
   deposit_amount: number
   mileage_included_per_day: number
   excess_mileage_rate: number
