@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
@@ -36,22 +37,18 @@ export async function proxy(request: NextRequest) {
     // Primary: rôle lu depuis l'objet user retourné par getUser() (appel réseau Supabase Auth)
     let isAdmin = user.app_metadata?.role === 'admin'
 
-    // Fallback: lecture directe dans auth.users via l'Admin REST API (service_role)
+    // Fallback: lecture directe dans auth.users via le client service_role
     // — contourne tout cache JWT si le token n'a pas encore été rafraîchi
     if (!isAdmin) {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${user.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-              apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            },
-          }
+        const adminClient = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { autoRefreshToken: false, persistSession: false } }
         )
-        if (res.ok) {
-          const dbUser = await res.json()
-          isAdmin = dbUser?.app_metadata?.role === 'admin'
+        const { data: { user: dbUser }, error } = await adminClient.auth.admin.getUserById(user.id)
+        if (!error && dbUser) {
+          isAdmin = dbUser.app_metadata?.role === 'admin'
         }
       } catch {
         // fallback silencieux — accès refusé si les deux méthodes échouent

@@ -10,13 +10,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/connexion?next=/admin')
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = createAdminClient() as any
+  const db = createAdminClient()
 
   // Primary: app_metadata lu depuis le JWT via l'API Supabase côté serveur
   let isAdmin = user.app_metadata?.role === 'admin'
 
-  // Fallback: lecture directe en base via Admin API si le JWT ne contient pas encore le rôle
+  // Fallback: lecture directe dans auth.users via le client service_role
+  // — contourne tout cache JWT si le token n'a pas encore été rafraîchi
   if (!isAdmin) {
     try {
       const { data: { user: dbUser }, error } = await db.auth.admin.getUserById(user.id)

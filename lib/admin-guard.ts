@@ -7,8 +7,7 @@ type GuardFail = { error: Response; user: null }
 
 async function checkAdminFromDb(userId: string): Promise<boolean> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any
+    const admin = createAdminClient()
     const { data: { user }, error } = await admin.auth.admin.getUserById(userId)
     if (error || !user) return false
     return user.app_metadata?.role === 'admin'

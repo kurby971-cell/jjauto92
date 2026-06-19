@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/types'
 
@@ -17,7 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Server Component — cookie refresh handled by middleware
+            // Server Component — cookie refresh handled by proxy
           }
         },
       },
@@ -25,11 +26,13 @@ export async function createClient() {
   )
 }
 
-// Client admin (bypass RLS) - server-side uniquement
+// Client admin (bypass RLS, expose auth.admin.*) — server-side uniquement
+// Utilise @supabase/supabase-js directement (pas @supabase/ssr) pour que
+// auth.admin.getUserById() lise auth.users en base et non depuis le JWT.
 export function createAdminClient() {
-  return createServerClient<Database>(
+  return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
+    { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
