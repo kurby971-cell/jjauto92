@@ -24,6 +24,32 @@ interface CreateBody {
   }
 }
 
+function computeBaseAmount(
+  nbDays: number,
+  dailyRate: number,
+  weeklyRate: number | null,
+  monthlyRate: number | null,
+  weekendRate: number | null,
+  dateStart: string,
+): number {
+  if (nbDays >= 30 && monthlyRate) {
+    const months = Math.floor(nbDays / 30)
+    const remaining = nbDays % 30
+    return months * monthlyRate + remaining * dailyRate
+  }
+  if (nbDays >= 7 && weeklyRate) {
+    const weeks = Math.floor(nbDays / 7)
+    const remaining = nbDays % 7
+    return weeks * weeklyRate + remaining * dailyRate
+  }
+  // Weekend rate for 2-3 day rentals starting Friday or Saturday
+  if ((nbDays === 2 || nbDays === 3) && weekendRate) {
+    const dow = new Date(dateStart + 'T00:00:00').getDay() // 0=Sun,5=Fri,6=Sat
+    if (dow === 5 || dow === 6) return weekendRate
+  }
+  return nbDays * dailyRate
+}
+
 export async function POST(request: Request) {
   let body: CreateBody
   try {
@@ -58,7 +84,7 @@ export async function POST(request: Request) {
   // 2. Fetch vehicle (server-side rate, never trust client)
   const { data: vehicle, error: vErr } = await db
     .from('vehicles')
-    .select('daily_rate, deposit_amount')
+    .select('daily_rate, weekend_rate, weekly_rate, monthly_rate, deposit_amount, mileage_included_per_day')
     .eq('id', vehicleId)
     .single()
   if (vErr || !vehicle) {
@@ -71,7 +97,15 @@ export async function POST(request: Request) {
     1,
     Math.round((new Date(dateEnd).getTime() - new Date(dateStart).getTime()) / 86_400_000)
   )
-  const baseAmount = Number(vehicle.daily_rate) * nbDays
+
+  const baseAmount = computeBaseAmount(
+    nbDays,
+    Number(vehicle.daily_rate),
+    vehicle.weekly_rate ? Number(vehicle.weekly_rate) : null,
+    vehicle.monthly_rate ? Number(vehicle.monthly_rate) : null,
+    vehicle.weekend_rate ? Number(vehicle.weekend_rate) : null,
+    dateStart,
+  )
   const depositAmount = Number(vehicle.deposit_amount)
 
   let optionsAmount = 0
@@ -172,7 +206,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: resErr?.message ?? 'Erreur création réservation' }, { status: 500 })
   }
 
-  // 6. Create Stripe PaymentIntent
+  // 6. Create Stripe PaymentIntent (rental)
   let paymentIntent
   try {
     paymentIntent = await getStripe().paymentIntents.create({
@@ -212,7 +246,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: payErr.message }, { status: 500 })
   }
 
-  // Notify Make.com — fire-and-forget (logs URL, payload et status dans notify.ts)
+  // 8. Create Stripe PaymentIntent for deposit (capture_method: manual = pre-authorization)
+  let depositClientSecret: string | null = null
+  if (depositAmount > 0) {
+    try {
+      const depositIntent = await getStripe().paymentIntents.create({
+        amount: Math.round(depositAmount * 100),
+        currency: 'eur',
+        capture_method: 'manual',
+        metadata: {
+          reservationId: reservation.id,
+          reservationNumber: reservation.reservation_number,
+          customerId,
+          type: 'deposit',
+        },
+        automatic_payment_methods: { enabled: true },
+        description: `Caution ${reservation.reservation_number} — JJ AUTO 92`,
+      })
+      depositClientSecret = depositIntent.client_secret
+
+      const { error: depErr } = await db.from('deposits').insert({
+        reservation_id: reservation.id,
+        customer_id: customerId,
+        stripe_payment_intent_id: depositIntent.id,
+        amount: depositAmount,
+        currency: 'eur',
+        captured_amount: 0,
+        status: 'pending',
+      })
+      if (depErr) {
+        console.error('[reservation/create] deposits insert:', depErr)
+      }
+    } catch (err) {
+      console.error('[reservation/create] stripe deposit paymentIntent:', err)
+      // Non-fatal: reservation + rental payment are valid; admin handles deposit manually
+    }
+  }
+
+  // Notify Make.com — fire-and-forget
   const { data: vInfo } = await db
     .from('vehicles')
     .select('brand,model')
@@ -244,6 +315,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,
+    depositClientSecret,
     reservationId: reservation.id,
     reservationNumber: reservation.reservation_number,
   })

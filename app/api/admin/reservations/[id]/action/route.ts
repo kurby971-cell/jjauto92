@@ -36,10 +36,10 @@ export async function POST(
   const { action } = body
   const now = new Date().toISOString()
 
-  // Fetch current reservation
+  // Fetch current reservation with all fields needed for calculations
   const { data: res, error: fetchErr } = await db
     .from('reservations')
-    .select('id, status, vehicle_id')
+    .select('id, status, vehicle_id, mileage_start, total_days, start_date, total_amount')
     .eq('id', id)
     .single()
 
@@ -63,12 +63,24 @@ export async function POST(
     if (['completed', 'cancelled'].includes(res.status)) {
       return NextResponse.json({ error: 'Cette réservation ne peut plus être annulée' }, { status: 409 })
     }
+
+    // Compute cancellation fee based on hours until start
+    const hoursUntilStart = (new Date(res.start_date).getTime() - Date.now()) / (1000 * 3600)
+    let cancellationFee = 0
+    if (hoursUntilStart < 24) {
+      cancellationFee = parseFloat((Number(res.total_amount) * 0.5).toFixed(2))
+    } else if (hoursUntilStart < 48) {
+      cancellationFee = parseFloat((Number(res.total_amount) * 0.2).toFixed(2))
+    }
+    // > 48h: free
+
     const { error: upErr } = await db
       .from('reservations')
       .update({
         status: 'cancelled',
         cancelled_at: now,
         cancellation_reason: body.cancellation_reason ?? null,
+        cancellation_fee: cancellationFee,
       })
       .eq('id', id)
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
@@ -77,7 +89,7 @@ export async function POST(
     if (res.status === 'active') {
       await db.from('vehicles').update({ status: 'disponible' }).eq('id', res.vehicle_id)
     }
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, cancellation_fee: cancellationFee })
   }
 
   if (action === 'start') {
@@ -109,6 +121,25 @@ export async function POST(
     if (body.fuel_charge !== undefined) update.fuel_charge = body.fuel_charge
     if (body.damage_charge !== undefined) update.damage_charge = body.damage_charge
 
+    // Auto-calculate excess mileage charge when both mileage values are available
+    const mileageStart = body.mileage_start ?? res.mileage_start
+    const mileageEnd = body.mileage_end
+    if (mileageStart != null && mileageEnd != null) {
+      const { data: vehicleData } = await db
+        .from('vehicles')
+        .select('mileage_included_per_day, excess_mileage_rate')
+        .eq('id', res.vehicle_id)
+        .single()
+      if (vehicleData) {
+        const allowedKm = Number(vehicleData.mileage_included_per_day) * Number(res.total_days)
+        const drivenKm = mileageEnd - mileageStart
+        const excessKm = Math.max(0, drivenKm - allowedKm)
+        update.excess_mileage_charge = parseFloat(
+          (excessKm * Number(vehicleData.excess_mileage_rate)).toFixed(2)
+        )
+      }
+    }
+
     const { error: upErr } = await db.from('reservations').update(update).eq('id', id)
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
 
@@ -117,7 +148,7 @@ export async function POST(
     if (body.mileage_end !== undefined) vehicleUpdate.current_mileage = body.mileage_end
     await db.from('vehicles').update(vehicleUpdate).eq('id', res.vehicle_id)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, excess_mileage_charge: update.excess_mileage_charge ?? 0 })
   }
 
   if (action === 'delete') {

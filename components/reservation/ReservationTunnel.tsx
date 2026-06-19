@@ -55,6 +55,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
   const [step, setStep] = useState(1)
   const [draft, setDraft] = useState<ReservationDraft | null>(null)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [depositClientSecret, setDepositClientSecret] = useState<string | null>(null)
   const [creatingReservation, setCreatingReservation] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -67,7 +68,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
         const parsed = JSON.parse(saved)
         if (parsed.vehicleId === vehicle.id) {
           // Extract _clientSecret before spreading into draft (not part of ReservationDraft type)
-          const { _clientSecret: savedCs, ...draftData } = parsed as ReservationDraft & { _clientSecret?: string }
+          const { _clientSecret: savedCs, _depositClientSecret: savedDepCs, ...draftData } = parsed as ReservationDraft & { _clientSecret?: string; _depositClientSecret?: string }
           setDraft({
             ...draftData,
             dateStart: initialDateStart ?? draftData.dateStart,
@@ -76,6 +77,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
           if (savedCs) {
             // clientSecret présent → restaure step 3 normalement
             setClientSecret(savedCs)
+            if (savedDepCs) setDepositClientSecret(savedDepCs)
             setStep(draftData.lastStep ?? 1)
           } else if ((draftData.lastStep ?? 1) === 3) {
             // step 3 sans clientSecret (ancien format LS ou session interrompue)
@@ -98,6 +100,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
     if (draft) {
       const data: Record<string, unknown> = { ...draft, lastStep: step }
       if (clientSecret) data._clientSecret = clientSecret
+      if (depositClientSecret) data._depositClientSecret = depositClientSecret
       localStorage.setItem(LS_KEY, JSON.stringify(data))
     }
   }, [draft, step, clientSecret])
@@ -141,11 +144,12 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-      const { clientSecret: cs, reservationId, reservationNumber } = json
+      const { clientSecret: cs, depositClientSecret: depCs, reservationId, reservationNumber } = json
       if (!cs) {
         throw new Error('Erreur d\'initialisation du paiement (client secret manquant). Veuillez réessayer.')
       }
       setClientSecret(cs)
+      if (depCs) setDepositClientSecret(depCs)
       updateDraft({ reservationId, reservationNumber })
       setStep(3)
       window.scrollTo({ top: 0, behavior: 'smooth' })

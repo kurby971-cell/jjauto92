@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/server'
+import DepositAuthorization from '@/components/reservation/DepositAuthorization'
 
 interface Props {
   searchParams: Promise<{
@@ -147,6 +148,11 @@ export default async function ConfirmationPage({ searchParams }: Props) {
               </ul>
             </div>
           </>
+        )}
+
+        {/* Deposit pre-authorization — reads depositClientSecret from localStorage */}
+        {reservationId && (
+          <DepositAuthorization reservationId={reservationId} />
         )}
 
         {/* Contact + actions */}

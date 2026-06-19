@@ -23,6 +23,16 @@ export async function POST(request: Request) {
     case 'payment_intent.succeeded': {
       const intent = event.data.object
       const reservationId: string | undefined = intent.metadata?.reservationId
+      const isDeposit = intent.metadata?.type === 'deposit'
+
+      if (isDeposit) {
+        // Deposit captured (capture_method:manual — shouldn't normally fire succeeded, but handle it)
+        await db
+          .from('deposits')
+          .update({ status: 'captured', captured_at: new Date().toISOString() })
+          .eq('stripe_payment_intent_id', intent.id)
+        break
+      }
 
       await db
         .from('payments')
@@ -40,7 +50,6 @@ export async function POST(request: Request) {
           .eq('id', reservationId)
           .eq('status', 'pending')
 
-        // Fetch reservation details for Make
         const { data: res } = await db
           .from('reservations')
           .select('reservation_number,customers(email)')
@@ -56,6 +65,41 @@ export async function POST(request: Request) {
           customerEmail: res?.customers?.email,
           status: 'succeeded',
         })
+      }
+      break
+    }
+
+    case 'payment_intent.amount_capturable_updated': {
+      // Deposit pre-authorization confirmed (capture_method: manual)
+      const intent = event.data.object
+      if (intent.metadata?.type === 'deposit') {
+        await db
+          .from('deposits')
+          .update({
+            status: 'authorized',
+            authorized_at: new Date().toISOString(),
+            // Stripe card pre-authorizations expire after 7 days
+            authorization_expiry: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+          })
+          .eq('stripe_payment_intent_id', intent.id)
+      }
+      break
+    }
+
+    case 'payment_intent.canceled': {
+      const intent = event.data.object
+      const isDeposit = intent.metadata?.type === 'deposit'
+
+      if (isDeposit) {
+        await db
+          .from('deposits')
+          .update({ status: 'released', released_at: new Date().toISOString() })
+          .eq('stripe_payment_intent_id', intent.id)
+      } else {
+        await db
+          .from('payments')
+          .update({ status: 'failed', failure_reason: 'Paiement annulé' })
+          .eq('stripe_payment_intent_id', intent.id)
       }
       break
     }
@@ -86,7 +130,6 @@ export async function POST(request: Request) {
         })
         .eq('stripe_payment_intent_id', paymentIntentId)
 
-      // If full refund, cancel the reservation
       if (isFullRefund) {
         const { data: payment } = await db
           .from('payments')
@@ -100,6 +143,42 @@ export async function POST(request: Request) {
             .update({ status: 'cancelled' })
             .eq('id', payment.reservation_id)
             .in('status', ['pending', 'confirmed'])
+        }
+      }
+      break
+    }
+
+    case 'charge.dispute.created': {
+      const dispute = event.data.object
+      const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null
+      console.error('[webhook/stripe] LITIGE OUVERT — montant:', dispute.amount / 100, 'EUR — PI:', paymentIntentId)
+
+      if (paymentIntentId) {
+        await db
+          .from('payments')
+          .update({ metadata: { dispute_id: dispute.id, dispute_status: dispute.status } })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+      }
+      break
+    }
+
+    case 'charge.dispute.closed': {
+      const dispute = event.data.object
+      const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null
+      console.log('[webhook/stripe] LITIGE CLÔTURÉ — statut:', dispute.status, '— PI:', paymentIntentId)
+
+      if (paymentIntentId) {
+        await db
+          .from('payments')
+          .update({ metadata: { dispute_id: dispute.id, dispute_status: dispute.status } })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+
+        // Dispute lost: mark payment as refunded
+        if (dispute.status === 'lost') {
+          await db
+            .from('payments')
+            .update({ status: 'refunded', refunded_at: new Date().toISOString() })
+            .eq('stripe_payment_intent_id', paymentIntentId)
         }
       }
       break
