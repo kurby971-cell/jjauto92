@@ -73,9 +73,17 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
             dateStart: initialDateStart ?? draftData.dateStart,
             dateEnd: initialDateEnd ?? draftData.dateEnd,
           })
-          setStep(draftData.lastStep ?? 1)
-          // Restore clientSecret so step 3 works after a page refresh
-          if (savedCs) setClientSecret(savedCs)
+          if (savedCs) {
+            // clientSecret présent → restaure step 3 normalement
+            setClientSecret(savedCs)
+            setStep(draftData.lastStep ?? 1)
+          } else if ((draftData.lastStep ?? 1) === 3) {
+            // step 3 sans clientSecret (ancien format LS ou session interrompue)
+            // → retour à l'étape 1 pour éviter le spinner infini
+            setStep(1)
+          } else {
+            setStep(draftData.lastStep ?? 1)
+          }
           return
         }
       }

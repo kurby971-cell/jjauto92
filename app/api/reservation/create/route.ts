@@ -205,14 +205,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Erreur création dossier paiement' }, { status: 500 })
   }
 
-  // Notify Make.com (fire-and-forget, never blocks the response)
+  // Notify Make.com — fire-and-forget (logs URL, payload et status dans notify.ts)
   const { data: vInfo } = await db
     .from('vehicles')
     .select('brand,model')
     .eq('id', vehicleId)
     .single()
 
-  notifyMakeReservationCreated({
+  const makeUrl = process.env.MAKE_WEBHOOK_URL_RESERVATION ?? '(non définie)'
+  const makePayload = {
     reference: reservation.reservation_number,
     created_at: new Date().toISOString(),
     customer_name: `${driver.firstName} ${driver.lastName}`,
@@ -226,9 +227,13 @@ export async function POST(request: Request) {
     duration_days: nbDays,
     total_price: totalAmount,
     deposit_amount: depositAmount,
-    status: 'pending',
+    status: 'pending' as const,
     notes_admin: null,
-  })
+  }
+  console.log('[reservation/create] Make URL :', makeUrl)
+  console.log('[reservation/create] Make payload :', JSON.stringify({ event: 'reservation.created', ...makePayload }, null, 2))
+
+  notifyMakeReservationCreated(makePayload)
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,
