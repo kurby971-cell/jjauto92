@@ -60,8 +60,28 @@ export async function POST(request: Request) {
   }
 
   const { vehicleId, dateStart, dateEnd, selectedOptionIds, driver } = body
-  if (!vehicleId || !dateStart || !dateEnd || !driver?.email) {
+  if (!vehicleId || !dateStart || !dateEnd) {
     return NextResponse.json({ error: 'Champs obligatoires manquants' }, { status: 400 })
+  }
+
+  if (!driver?.firstName?.trim() || !driver?.lastName?.trim()) {
+    return NextResponse.json({ error: 'Nom et prénom du conducteur requis' }, { status: 400 })
+  }
+  if (!driver?.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(driver.email)) {
+    return NextResponse.json({ error: 'Email du conducteur invalide' }, { status: 400 })
+  }
+  if (!driver?.phone?.trim()) {
+    return NextResponse.json({ error: 'Téléphone du conducteur requis' }, { status: 400 })
+  }
+  if (!driver?.dateOfBirth) {
+    return NextResponse.json({ error: 'Date de naissance du conducteur requise' }, { status: 400 })
+  }
+  const driverAge = Math.floor((Date.now() - new Date(driver.dateOfBirth).getTime()) / (365.25 * 86_400_000))
+  if (!Number.isFinite(driverAge) || driverAge < 21) {
+    return NextResponse.json({ error: 'Le conducteur doit avoir au moins 21 ans' }, { status: 400 })
+  }
+  if (!driver?.licenseNumber?.trim()) {
+    return NextResponse.json({ error: 'Numéro de permis du conducteur requis' }, { status: 400 })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

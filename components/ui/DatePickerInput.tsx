@@ -124,11 +124,19 @@ export default function DatePickerInput({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      {/* Trigger button */}
-      <button
-        type="button"
-        disabled={disabled}
+      {/* Trigger — a div (not a button) because it contains the nested "Effacer" button;
+          a <button> cannot legally contain another <button> (invalid HTML, hydration error) */}
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
         onClick={() => !disabled && setOpen(o => !o)}
+        onKeyDown={e => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault()
+            setOpen(o => !o)
+          }
+        }}
         className={triggerCls}
       >
         <svg
@@ -157,7 +165,7 @@ export default function DatePickerInput({
             ✕
           </button>
         )}
-      </button>
+      </div>
 
       {/* Calendar popup */}
       {open && (
