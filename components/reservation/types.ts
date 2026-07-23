@@ -11,6 +11,7 @@ export type DocumentRefs = {
   licenseRecto: string | null
   licenseVerso: string | null
   idDocument: string | null
+  idDocumentVerso: string | null // CNI verso only — null for passeport (page unique)
   idDocumentType: 'cni' | 'passeport' | null
 }
 
@@ -36,5 +37,6 @@ export const EMPTY_DOCS: DocumentRefs = {
   licenseRecto: null,
   licenseVerso: null,
   idDocument: null,
+  idDocumentVerso: null,
   idDocumentType: null,
 }

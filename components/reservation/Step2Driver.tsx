@@ -42,6 +42,9 @@ export default function Step2Driver({ draft, onComplete, onBack, loading }: Prop
   const [idDoc, setIdDoc] = useState<DocUpload>({
     ...EMPTY_UPLOAD, url: draft.documents.idDocument, state: draft.documents.idDocument ? 'done' : 'idle', name: draft.documents.idDocument ? 'Document uploadé' : null,
   })
+  const [idDocVerso, setIdDocVerso] = useState<DocUpload>({
+    ...EMPTY_UPLOAD, url: draft.documents.idDocumentVerso, state: draft.documents.idDocumentVerso ? 'done' : 'idle', name: draft.documents.idDocumentVerso ? 'Document uploadé' : null,
+  })
   const [idDocType, setIdDocType] = useState<'cni' | 'passeport'>(draft.documents.idDocumentType ?? 'cni')
 
   const f = (field: keyof DriverData) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,6 +103,7 @@ export default function Step2Driver({ draft, onComplete, onBack, loading }: Prop
       licenseRecto: licenseRecto.url,
       licenseVerso: licenseVerso.url,
       idDocument: idDoc.url,
+      idDocumentVerso: idDocType === 'cni' ? idDocVerso.url : null,
       idDocumentType: idDocType,
     })
   }
@@ -206,13 +210,32 @@ export default function Step2Driver({ draft, onComplete, onBack, loading }: Prop
                 </label>
               ))}
             </div>
-            <UploadZone
-              label={idDocType === 'cni' ? 'CNI (recto/verso)' : 'Page photo du passeport'}
-              docType={idDocType === 'cni' ? 'cni_recto' : 'passeport'}
-              state={idDoc}
-              onChange={(e) => handleFileChange(e, idDocType === 'cni' ? 'cni_recto' : 'passeport', setIdDoc)}
-              onRemove={() => setIdDoc(EMPTY_UPLOAD)}
-            />
+            {idDocType === 'cni' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <UploadZone
+                  label="CNI recto"
+                  docType="cni_recto"
+                  state={idDoc}
+                  onChange={(e) => handleFileChange(e, 'cni_recto', setIdDoc)}
+                  onRemove={() => setIdDoc(EMPTY_UPLOAD)}
+                />
+                <UploadZone
+                  label="CNI verso"
+                  docType="cni_verso"
+                  state={idDocVerso}
+                  onChange={(e) => handleFileChange(e, 'cni_verso', setIdDocVerso)}
+                  onRemove={() => setIdDocVerso(EMPTY_UPLOAD)}
+                />
+              </div>
+            ) : (
+              <UploadZone
+                label="Page photo du passeport"
+                docType="passeport"
+                state={idDoc}
+                onChange={(e) => handleFileChange(e, 'passeport', setIdDoc)}
+                onRemove={() => setIdDoc(EMPTY_UPLOAD)}
+              />
+            )}
           </div>
 
         </div>

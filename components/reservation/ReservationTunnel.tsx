@@ -9,6 +9,7 @@ import { EMPTY_DOCS } from './types'
 import ProgressBar from './ProgressBar'
 import Step1Summary from './Step1Summary'
 import Step2Driver from './Step2Driver'
+import DepositStep from './DepositStep'
 import Step3Payment from './Step3Payment'
 
 const LS_KEY = 'jjauto92_reservation_draft'
@@ -103,7 +104,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
       if (depositClientSecret) data._depositClientSecret = depositClientSecret
       localStorage.setItem(LS_KEY, JSON.stringify(data))
     }
-  }, [draft, step, clientSecret])
+  }, [draft, step, clientSecret, depositClientSecret])
 
   const updateDraft = useCallback((updates: Partial<ReservationDraft>) => {
     setDraft((prev) => prev ? { ...prev, ...updates } : prev)
@@ -200,8 +201,10 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
           <p className="text-gray-500 text-sm mt-3">
             {step < 3 ? (
               <>Étape {step} sur 3</>
+            ) : depositClientSecret ? (
+              <>Étape 3 sur 3 — Pré-autorisation caution (1/2)</>
             ) : (
-              <>Finalisation du paiement</>
+              <>Étape 3 sur 3 — Paiement de la location (2/2)</>
             )}
           </p>
         </div>
@@ -249,8 +252,23 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
           />
         )}
 
-        {step === 3 && clientSecret && (
+        {step === 3 && depositClientSecret && (
           <Elements
+            key={depositClientSecret}
+            stripe={getStripe()}
+            options={{ clientSecret: depositClientSecret, appearance: stripeAppearance }}
+          >
+            <DepositStep
+              depositAmount={draft.depositAmount}
+              returnUrl={`${window.location.origin}/reservation?vehicle=${draft.vehicleSlug ?? ''}&from=${draft.dateStart}&to=${draft.dateEnd}`}
+              onAuthorized={() => setDepositClientSecret(null)}
+            />
+          </Elements>
+        )}
+
+        {step === 3 && !depositClientSecret && clientSecret && (
+          <Elements
+            key={clientSecret}
             stripe={getStripe()}
             options={{ clientSecret, appearance: stripeAppearance }}
           >
@@ -258,7 +276,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
           </Elements>
         )}
 
-        {step === 3 && !clientSecret && (
+        {step === 3 && !depositClientSecret && !clientSecret && (
           <div className="text-center py-16">
             <svg className="w-8 h-8 text-gold mx-auto animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

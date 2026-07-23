@@ -20,6 +20,7 @@ interface CreateBody {
     licenseRecto: string | null
     licenseVerso: string | null
     idDocument: string | null
+    idDocumentVerso: string | null
     idDocumentType: string | null
   }
 }

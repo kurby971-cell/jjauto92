@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/server'
-import DepositAuthorization from '@/components/reservation/DepositAuthorization'
 
 interface Props {
   searchParams: Promise<{
@@ -137,7 +136,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
                 {[
                   'Vous recevrez un email de confirmation avec tous les détails.',
                   `Présentez-vous le ${fmtDate(data.start_date)} à partir de 9h au 1 Allée de Lorraine, 92000 Nanterre.`,
-                  'Apportez votre permis de conduire, votre pièce d\'identité et votre moyen de paiement pour la caution.',
+                  'Apportez votre permis de conduire et votre pièce d\'identité (la caution est déjà pré-autorisée).',
                   'Notre équipe vous remettra les clés et vous fera signer l\'état des lieux.',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
@@ -148,11 +147,6 @@ export default async function ConfirmationPage({ searchParams }: Props) {
               </ul>
             </div>
           </>
-        )}
-
-        {/* Deposit pre-authorization — reads depositClientSecret from localStorage */}
-        {reservationId && (
-          <DepositAuthorization reservationId={reservationId} />
         )}
 
         {/* Contact + actions */}
