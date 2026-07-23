@@ -22,7 +22,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (err) {
+    console.error('[proxy] supabase.auth.getUser() failed:', err instanceof Error ? err.message : err)
+  }
 
   if (request.nextUrl.pathname.startsWith('/mon-compte') && !user) {
     return NextResponse.redirect(new URL('/connexion', request.url))
@@ -47,11 +53,13 @@ export async function proxy(request: NextRequest) {
           { auth: { autoRefreshToken: false, persistSession: false } }
         )
         const { data: { user: dbUser }, error } = await adminClient.auth.admin.getUserById(user.id)
-        if (!error && dbUser) {
+        if (error) {
+          console.error('[proxy] admin.getUserById error:', error.message)
+        } else if (dbUser) {
           isAdmin = dbUser.app_metadata?.role === 'admin'
         }
-      } catch {
-        // fallback silencieux — accès refusé si les deux méthodes échouent
+      } catch (err) {
+        console.error('[proxy] service-role fallback failed:', err instanceof Error ? err.message : err)
       }
     }
 
