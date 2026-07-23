@@ -187,7 +187,6 @@ export async function POST(request: Request) {
       base_amount: baseAmount,
       options_amount: optionsAmount,
       discount_amount: 0,
-      total_days: nbDays,
       total_amount: totalAmount,
       deposit_amount: depositAmount,
       options: optionsCodes,
