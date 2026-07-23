@@ -34,6 +34,14 @@ export async function generateStaticParams() {
   return getAllVehicleSlugs()
 }
 
+// ISR: la page est pré-rendue au build (generateStaticParams) mais figée
+// sans ce réglage — une réservation confirmée (trigger sync_reservation_to_
+// unavailability, vérifié fonctionnel) n'apparaîtrait dans le calendrier
+// qu'au prochain déploiement. Le vrai garde-fou anti-double-réservation
+// reste côté serveur (is_vehicle_available() dans reservation/create) :
+// ceci ne corrige que l'affichage.
+export const revalidate = 60
+
 interface Props {
   params: Promise<{ slug: string }>
 }

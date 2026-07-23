@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
 interface Consent {
@@ -43,10 +43,36 @@ export default function CookieBanner() {
   const [showCustom, setShowCustom] = useState(false)
   const [analytics, setAnalytics] = useState(false)
   const [marketing, setMarketing] = useState(false)
+  const bannerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const consent = loadConsent()
     if (!consent) setVisible(true)
+  }, [])
+
+  // Publish the banner's real height as a CSS var so page content can
+  // reserve space for it — the fixed banner must never overlap form
+  // controls (e.g. the reservation tunnel's submit button).
+  useEffect(() => {
+    if (!visible) {
+      document.documentElement.style.setProperty('--cookie-banner-h', '0px')
+      return
+    }
+    const el = bannerRef.current
+    if (!el) return
+    const update = () => {
+      document.documentElement.style.setProperty('--cookie-banner-h', `${el.offsetHeight}px`)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [visible, showCustom])
+
+  useEffect(() => {
+    return () => {
+      document.documentElement.style.setProperty('--cookie-banner-h', '0px')
+    }
   }, [])
 
   if (!visible) return null
@@ -68,10 +94,10 @@ export default function CookieBanner() {
 
   return (
     <div
+      ref={bannerRef}
       role="dialog"
       aria-label="Gestion des cookies"
-      aria-modal="true"
-      className="fixed bottom-0 left-0 right-0 z-[9999] p-3 sm:p-4"
+      className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4"
     >
       <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-2xl">
 

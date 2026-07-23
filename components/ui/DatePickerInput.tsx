@@ -169,7 +169,7 @@ export default function DatePickerInput({
 
       {/* Calendar popup */}
       {open && (
-        <div className="absolute z-50 mt-1.5 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 w-72 select-none">
+        <div className="absolute z-[60] mt-1.5 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 w-72 select-none">
           {/* Month + year dropdowns */}
           <div className="flex items-center gap-2 mb-3">
             <select
