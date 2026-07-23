@@ -3,17 +3,14 @@
 -- À appliquer via : Supabase Dashboard › SQL Editor
 -- ============================================================
 
--- 1. Ajoute la catégorie "sport" à l'enum (Polo GTI)
-ALTER TYPE vehicle_category ADD VALUE IF NOT EXISTS 'sport';
-
--- 2. Ajoute la colonne weekend_rate (tarif 2 jours consécutifs week-end)
+-- 1. Ajoute la colonne weekend_rate (tarif 2 jours consécutifs week-end)
 ALTER TABLE vehicles
   ADD COLUMN IF NOT EXISTS weekend_rate NUMERIC(10,2);
 
 COMMENT ON COLUMN vehicles.weekend_rate
   IS 'Tarif week-end (2 jours consécutifs). Null = calcul sur daily_rate × 2.';
 
--- 3. Supprime les véhicules de démonstration
+-- 2. Supprime les véhicules de démonstration
 DELETE FROM vehicles
 WHERE slug IN (
   'volkswagen-golf-8-2023',
@@ -22,7 +19,7 @@ WHERE slug IN (
   'renault-zoe-2023'
 );
 
--- 4. Insère les vrais véhicules
+-- 3. Insère les vrais véhicules
 --    license_plate : à mettre à jour avec les vraies plaques d'immatriculation
 INSERT INTO vehicles (
   brand, model, year, license_plate, color,
@@ -34,7 +31,7 @@ INSERT INTO vehicles (
 ) VALUES
 (
   'Volkswagen', 'Polo GTI DSG7', 2024, 'XX-000-XX', 'Gris Ascot',
-  'sport', 'essence', 'automatique', 5, 5,
+  'premium', 'essence', 'automatique', 5, 5,
   130.00, 300.00, 650.00, 1900.00,
   2000.00, 200, 0.30,
   'disponible', 0, true,

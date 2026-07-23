@@ -1,6 +1,6 @@
 // Types générés depuis schema.sql JJAUTO92
 
-export type VehicleCategory = 'economy' | 'compact' | 'standard' | 'suv' | 'premium' | 'luxury' | 'utility' | 'sport'
+export type VehicleCategory = 'economy' | 'compact' | 'standard' | 'suv' | 'premium' | 'luxury' | 'utility'
 export type FuelType = 'essence' | 'diesel' | 'electrique' | 'hybride' | 'hybride_rechargeable'
 export type TransmissionType = 'manuelle' | 'automatique'
 export type VehicleStatus = 'disponible' | 'en_location' | 'en_maintenance' | 'hors_service'

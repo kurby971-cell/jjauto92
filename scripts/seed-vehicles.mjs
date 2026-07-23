@@ -1,5 +1,5 @@
 // Exécute la migration 002 sur Supabase :
-//   - DDL via l'API pg-meta (ALTER TYPE, ALTER TABLE)
+//   - DDL via l'API pg-meta (ALTER TABLE)
 //   - DML via l'admin client @supabase/supabase-js (DELETE, INSERT)
 //
 // Usage : node --env-file=.env.local scripts/seed-vehicles.mjs
@@ -59,14 +59,14 @@ async function deleteDemoVehicles() {
   console.log(`  ✓ ${count ?? '?'} véhicule(s) de démo supprimé(s)`)
 }
 
-async function insertVehicles(hasSportEnum, hasWeekendRate) {
+async function insertVehicles(hasWeekendRate) {
   const polo = {
     brand: 'Volkswagen',
     model: 'Polo GTI DSG7',
     year: 2024,
     license_plate: 'XX-000-XX',
     color: 'Gris Ascot',
-    category: hasSportEnum ? 'sport' : 'premium',
+    category: 'premium',
     fuel_type: 'essence',
     transmission: 'automatique',
     seats: 5,
@@ -146,23 +146,13 @@ async function insertVehicles(hasSportEnum, hasWeekendRate) {
   if (error) throw new Error(`INSERT failed: ${error.message}`)
 
   console.log(`  ✓ 2 véhicule(s) inséré(s)`)
-  if (!hasSportEnum) {
-    console.warn('  ⚠ Polo GTI insérée avec category="premium" (faute de enum "sport")')
-    console.warn('    → Appliquer la migration 002 manuellement puis UPDATE vehicles SET category=\'sport\' WHERE slug=\'polo-gti-dsg7\'')
-  }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n=== Migration 002 — Véhicules réels ===\n')
 
-  // DDL 1 : ajoute enum 'sport'
-  const hasSportEnum = await runDDL(
-    "ALTER TYPE vehicle_category ADD VALUE 'sport'",
-    "ALTER TYPE vehicle_category ADD VALUE IF NOT EXISTS 'sport';"
-  )
-
-  // DDL 2 : ajoute colonne weekend_rate
+  // DDL : ajoute colonne weekend_rate
   const hasWeekendRate = await runDDL(
     'ALTER TABLE vehicles ADD COLUMN weekend_rate',
     "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS weekend_rate NUMERIC(10,2);"
@@ -172,7 +162,7 @@ async function main() {
 
   // DML
   await deleteDemoVehicles()
-  await insertVehicles(hasSportEnum, hasWeekendRate)
+  await insertVehicles(hasWeekendRate)
 
   console.log('\n✓ Migration terminée.\n')
   console.log('⚠ Pensez à mettre à jour license_plate avec les vraies plaques.')
