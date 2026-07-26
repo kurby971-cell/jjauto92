@@ -14,6 +14,14 @@ import Step3Payment from './Step3Payment'
 
 const LS_KEY = 'jjauto92_reservation_draft'
 
+// Durée pendant laquelle une session sauvegardée est considérée "encore active"
+// (rafraîchissement accidentel pendant la saisie, retour de redirection 3D Secure).
+// Au-delà, on ne bascule plus automatiquement à l'étape sauvegardée : sans ça,
+// toute visite ultérieure de /reservation?vehicle=X (même vieille de plusieurs
+// jours) resterait bloquée à l'étape 3 avec un clientSecret Stripe périmé —
+// c'est la cause exacte du bug "l'étape 2 est parfois sautée".
+const RESUME_WINDOW_MS = 5 * 60 * 1000
+
 interface Props {
   vehicle: Vehicle | null
   rentalOptions: RentalOption[]
@@ -70,24 +78,29 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
       if (saved) {
         const parsed = JSON.parse(saved)
         if (parsed.vehicleId === vehicle.id) {
-          // Extract _clientSecret before spreading into draft (not part of ReservationDraft type)
-          const { _clientSecret: savedCs, _depositClientSecret: savedDepCs, ...draftData } = parsed as ReservationDraft & { _clientSecret?: string; _depositClientSecret?: string }
+          // Extract _clientSecret/_savedAt before spreading into draft (not part of ReservationDraft type)
+          const { _clientSecret: savedCs, _depositClientSecret: savedDepCs, _savedAt: savedAt, ...draftData } =
+            parsed as ReservationDraft & { _clientSecret?: string; _depositClientSecret?: string; _savedAt?: number }
           setDraft({
             ...draftData,
             dateStart: initialDateStart ?? draftData.dateStart,
             dateEnd: initialDateEnd ?? draftData.dateEnd,
           })
-          if (savedCs) {
-            // clientSecret présent → restaure step 3 normalement
+
+          const isRecent = typeof savedAt === 'number' && (Date.now() - savedAt) < RESUME_WINDOW_MS
+
+          if (isRecent && savedCs) {
+            // clientSecret présent et session récente → restaure l'étape 3 normalement
             setClientSecret(savedCs)
             if (savedDepCs) setDepositClientSecret(savedDepCs)
             setStep(draftData.lastStep ?? 1)
-          } else if ((draftData.lastStep ?? 1) === 3) {
-            // step 3 sans clientSecret (ancien format LS ou session interrompue)
-            // → retour à l'étape 1 pour éviter le spinner infini
-            setStep(1)
-          } else {
+          } else if (isRecent && (draftData.lastStep ?? 1) !== 3) {
+            // Étape 2 sans clientSecret, session récente → reprise normale
             setStep(draftData.lastStep ?? 1)
+          } else {
+            // Session absente, périmée, ou étape 3 sans clientSecret encore valide
+            // → repart de l'étape 1 plutôt que de sauter des étapes sur un état obsolète
+            setStep(1)
           }
           return
         }
@@ -101,7 +114,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
   // safe for short-term client-side storage; they don't grant server-side access)
   useEffect(() => {
     if (draft) {
-      const data: Record<string, unknown> = { ...draft, lastStep: step }
+      const data: Record<string, unknown> = { ...draft, lastStep: step, _savedAt: Date.now() }
       if (clientSecret) data._clientSecret = clientSecret
       if (depositClientSecret) data._depositClientSecret = depositClientSecret
       localStorage.setItem(LS_KEY, JSON.stringify(data))

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/server'
+import ClearReservationDraft from '@/components/reservation/ClearReservationDraft'
 
 interface Props {
   searchParams: Promise<{
@@ -68,6 +69,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      <ClearReservationDraft />
 
       {/* Hero */}
       <div className="bg-navy py-16 lg:py-20">
