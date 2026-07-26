@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Elements } from '@stripe/react-stripe-js'
 import { getStripe } from '@/lib/stripe/client'
 import type { Vehicle, RentalOption } from '@/lib/types'
+import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
 import type { ReservationDraft, DriverData, DocumentRefs } from './types'
 import { EMPTY_DOCS } from './types'
 import ProgressBar from './ProgressBar'
@@ -25,6 +26,7 @@ const RESUME_WINDOW_MS = 5 * 60 * 1000
 interface Props {
   vehicle: Vehicle | null
   rentalOptions: RentalOption[]
+  unavailabilities: UnavailabilityPeriod[]
   initialDateStart: string | null
   initialDateEnd: string | null
 }
@@ -62,7 +64,7 @@ const stripeAppearance = {
   },
 }
 
-export default function ReservationTunnel({ vehicle, rentalOptions, initialDateStart, initialDateEnd }: Props) {
+export default function ReservationTunnel({ vehicle, rentalOptions, unavailabilities, initialDateStart, initialDateEnd }: Props) {
   const [step, setStep] = useState(1)
   const [draft, setDraft] = useState<ReservationDraft | null>(null)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -256,6 +258,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
             vehicle={vehicle}
             options={rentalOptions}
             draft={draft}
+            unavailabilities={unavailabilities}
             onComplete={handleStep1Complete}
           />
         )}

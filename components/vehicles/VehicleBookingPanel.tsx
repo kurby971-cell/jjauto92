@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import type { Vehicle, RentalOption } from '@/lib/types'
 import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
+import { dateFromISO, addDaysISO as addDays, daysBetweenISO as daysBetween, buildBlockedDateSet as buildBlockedSet, hasBlockedInRange } from '@/lib/availability'
 
 // ── Calendar helpers ────────────────────────────────────────────
 const WEEK_DAYS = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di']
@@ -14,46 +15,6 @@ const MONTHS_FR = [
 
 function isoFromParts(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-}
-
-// Parse as UTC midnight so toISOString() always returns the same calendar date
-// regardless of the browser's local timezone (critical for UTC+ timezones like France).
-function dateFromISO(iso: string) {
-  return new Date(iso + 'T00:00:00Z')
-}
-
-function addDays(iso: string, n: number) {
-  const d = dateFromISO(iso)
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().split('T')[0]
-}
-
-function daysBetween(a: string, b: string) {
-  return Math.round((dateFromISO(b).getTime() - dateFromISO(a).getTime()) / 86_400_000)
-}
-
-function buildBlockedSet(periods: UnavailabilityPeriod[]) {
-  const set = new Set<string>()
-  for (const { start_date, end_date } of periods) {
-    const cur = dateFromISO(start_date)
-    const end = dateFromISO(end_date)
-    while (cur <= end) {
-      set.add(cur.toISOString().split('T')[0])
-      cur.setUTCDate(cur.getUTCDate() + 1)
-    }
-  }
-  return set
-}
-
-function hasBlockedInRange(start: string, end: string, blocked: Set<string>) {
-  const cur = dateFromISO(start)
-  cur.setUTCDate(cur.getUTCDate() + 1)
-  const endDate = dateFromISO(end)
-  while (cur < endDate) {
-    if (blocked.has(cur.toISOString().split('T')[0])) return true
-    cur.setUTCDate(cur.getUTCDate() + 1)
-  }
-  return false
 }
 
 // ── Pricing ──────────────────────────────────────────────────────

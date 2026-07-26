@@ -5,7 +5,6 @@ import {
   getVehicleBySlug,
   getVehicleUnavailabilities,
   getActiveRentalOptions,
-  getAllVehicleSlugs,
 } from '@/lib/supabase/queries'
 import VehicleGallery from '@/components/vehicles/VehicleGallery'
 import VehicleBookingPanel from '@/components/vehicles/VehicleBookingPanel'
@@ -30,17 +29,15 @@ const FUEL_LABELS: Record<string, string> = {
   hybride_rechargeable: 'Hybride plug-in',
 }
 
-export async function generateStaticParams() {
-  return getAllVehicleSlugs()
-}
-
-// ISR: la page est pré-rendue au build (generateStaticParams) mais figée
-// sans ce réglage — une réservation confirmée (trigger sync_reservation_to_
-// unavailability, vérifié fonctionnel) n'apparaîtrait dans le calendrier
-// qu'au prochain déploiement. Le vrai garde-fou anti-double-réservation
-// reste côté serveur (is_vehicle_available() dans reservation/create) :
-// ceci ne corrige que l'affichage.
-export const revalidate = 60
+// PAS de generateStaticParams / ISR ici : le cache ISR par défaut de Next.js
+// est basé sur le système de fichiers de l'instance (voir docs/self-hosting —
+// "effectively short-lived and per-instance" sur compute éphémère), ce qui
+// est exactement le modèle Netlify Functions. Sans cache handler durable
+// custom, un `revalidate` n'offre aucune garantie de fraîcheur — c'est ce qui
+// a cassé l'affichage des indisponibilités en prod. Le calendrier de dispo
+// est une donnée trop sensible (business) pour dépendre d'un cache dont on
+// n'a pas la certitude qu'il se comporte comme prévu sur cette plateforme.
+export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ slug: string }>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getVehicleBySlug, getActiveRentalOptions } from '@/lib/supabase/queries'
+import { getVehicleBySlug, getActiveRentalOptions, getVehicleUnavailabilities } from '@/lib/supabase/queries'
 import ReservationTunnel from '@/components/reservation/ReservationTunnel'
 
 export const metadata: Metadata = {
@@ -23,10 +23,13 @@ export default async function ReservationPage({ searchParams }: Props) {
     getActiveRentalOptions(),
   ])
 
+  const unavailabilities = vehicle ? await getVehicleUnavailabilities(vehicle.id) : []
+
   return (
     <ReservationTunnel
       vehicle={vehicle}
       rentalOptions={rentalOptions}
+      unavailabilities={unavailabilities}
       initialDateStart={from ?? null}
       initialDateEnd={to ?? null}
     />

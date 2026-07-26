@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import type { Vehicle, RentalOption } from '@/lib/types'
+import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
 import type { ReservationDraft } from './types'
 import DatePickerInput from '@/components/ui/DatePickerInput'
+import { buildBlockedDateSet, hasBlockedInRange } from '@/lib/availability'
 
 const FUEL_LABELS: Record<string, string> = {
   essence: 'Essence', diesel: 'Diesel', electrique: 'Électrique',
@@ -29,16 +31,23 @@ interface Props {
   vehicle: Vehicle
   options: RentalOption[]
   draft: ReservationDraft
+  unavailabilities: UnavailabilityPeriod[]
   onComplete: (data: Pick<ReservationDraft, 'dateStart' | 'dateEnd' | 'pickupTime' | 'returnTime' | 'nbDays' | 'selectedOptionIds' | 'baseAmount' | 'optionsAmount' | 'totalAmount' | 'depositAmount'>) => void
 }
 
-export default function Step1Summary({ vehicle, options, draft, onComplete }: Props) {
+export default function Step1Summary({ vehicle, options, draft, unavailabilities, onComplete }: Props) {
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [dateStart, setDateStart] = useState(draft.dateStart)
   const [dateEnd, setDateEnd] = useState(draft.dateEnd)
   const [pickupTime, setPickupTime] = useState(draft.pickupTime ?? '09:00')
   const [returnTime, setReturnTime] = useState(draft.returnTime ?? '18:00')
   const [selectedIds, setSelectedIds] = useState<string[]>(draft.selectedOptionIds)
+
+  // Mêmes indisponibilités et même logique de blocage que le calendrier de la
+  // fiche véhicule (lib/availability) — sans ça, une date choisie ici pouvait
+  // sembler disponible puis être rejetée par is_vehicle_available() à l'étape 2.
+  const blocked = useMemo(() => buildBlockedDateSet(unavailabilities), [unavailabilities])
+  const rangeIsBlocked = dateStart && dateEnd ? hasBlockedInRange(dateStart, dateEnd, blocked) : false
 
   const nbDays = useMemo(() => {
     if (!dateStart || !dateEnd || dateEnd <= dateStart) return 0
@@ -54,7 +63,7 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
   const totalAmount = baseAmount + optionsAmount
 
   const primaryPhoto = vehicle.photos?.find((p) => p.is_primary) ?? vehicle.photos?.[0]
-  const canContinue = nbDays > 0
+  const canContinue = nbDays > 0 && !rangeIsBlocked
 
   function toggleOption(id: string) {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
@@ -125,6 +134,7 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
             <DatePickerInput
               value={dateStart}
               min={today}
+              disabledDates={blocked}
               onChange={(v) => {
                 setDateStart(v)
                 if (dateEnd && v >= dateEnd) setDateEnd('')
@@ -137,6 +147,7 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
               value={dateEnd}
               min={dateStart ? (() => { const d = new Date(dateStart + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().split('T')[0] })() : today}
               disabled={!dateStart}
+              disabledDates={blocked}
               onChange={setDateEnd}
             />
           </div>
@@ -161,7 +172,15 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
             </select>
           </div>
         </div>
-        {nbDays > 0 && (
+        {nbDays > 0 && rangeIsBlocked && (
+          <p className="text-red-600 text-xs font-semibold mt-3 flex items-start gap-1.5">
+            <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Ce véhicule est déjà réservé sur une partie de cette période. Choisissez d'autres dates.
+          </p>
+        )}
+        {nbDays > 0 && !rangeIsBlocked && (
           <p className="text-gold text-xs font-semibold mt-3">
             ✓ {nbDays} jour{nbDays > 1 ? 's' : ''} — du {fmtDate(dateStart)} à {pickupTime} au {fmtDate(dateEnd)} à {returnTime}
           </p>

@@ -31,6 +31,7 @@ interface Props {
   onChange: (v: string) => void
   min?: string
   max?: string
+  disabledDates?: Set<string>
   placeholder?: string
   disabled?: boolean
   className?: string
@@ -38,7 +39,7 @@ interface Props {
 }
 
 export default function DatePickerInput({
-  value, onChange, min, max,
+  value, onChange, min, max, disabledDates,
   placeholder = 'Choisir une date',
   disabled = false,
   className = '',
@@ -98,6 +99,7 @@ export default function DatePickerInput({
     const iso = toISO(viewY, viewM, d)
     if (min && iso < min) return true
     if (max && iso > max) return true
+    if (disabledDates?.has(iso)) return true
     return false
   }
 
