@@ -27,6 +27,8 @@ function buildInitialDraft(vehicle: Vehicle, from: string | null, to: string | n
     vehicleSlug: vehicle.slug,
     dateStart: from ?? '',
     dateEnd: to ?? '',
+    pickupTime: '09:00',
+    returnTime: '18:00',
     nbDays: 0,
     selectedOptionIds: [],
     baseAmount: 0,
@@ -112,7 +114,7 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
 
   // ── Step 1 → 2 ──────────────────────────────────────────────
   function handleStep1Complete(data: Pick<ReservationDraft,
-    'dateStart' | 'dateEnd' | 'nbDays' | 'selectedOptionIds' |
+    'dateStart' | 'dateEnd' | 'pickupTime' | 'returnTime' | 'nbDays' | 'selectedOptionIds' |
     'baseAmount' | 'optionsAmount' | 'totalAmount' | 'depositAmount'
   >) {
     updateDraft(data)
@@ -136,6 +138,8 @@ export default function ReservationTunnel({ vehicle, rentalOptions, initialDateS
           vehicleId: draft.vehicleId,
           dateStart: draft.dateStart,
           dateEnd: draft.dateEnd,
+          pickupTime: draft.pickupTime,
+          returnTime: draft.returnTime,
           selectedOptionIds: draft.selectedOptionIds,
           driver,
           documents,

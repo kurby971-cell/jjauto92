@@ -20,6 +20,8 @@ export type ReservationDraft = {
   vehicleSlug: string | null
   dateStart: string
   dateEnd: string
+  pickupTime: string
+  returnTime: string
   nbDays: number
   selectedOptionIds: string[]
   baseAmount: number

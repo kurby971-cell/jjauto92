@@ -14,17 +14,30 @@ const CATEGORY_LABELS: Record<string, string> = {
   suv: 'SUV', premium: 'Premium', luxury: 'Luxe', utility: 'Utilitaire',
 }
 
+// Créneaux 08h00-19h00 par tranches de 30 min
+const TIME_SLOTS: string[] = (() => {
+  const slots: string[] = []
+  for (let minutes = 8 * 60; minutes <= 19 * 60; minutes += 30) {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+  }
+  return slots
+})()
+
 interface Props {
   vehicle: Vehicle
   options: RentalOption[]
   draft: ReservationDraft
-  onComplete: (data: Pick<ReservationDraft, 'dateStart' | 'dateEnd' | 'nbDays' | 'selectedOptionIds' | 'baseAmount' | 'optionsAmount' | 'totalAmount' | 'depositAmount'>) => void
+  onComplete: (data: Pick<ReservationDraft, 'dateStart' | 'dateEnd' | 'pickupTime' | 'returnTime' | 'nbDays' | 'selectedOptionIds' | 'baseAmount' | 'optionsAmount' | 'totalAmount' | 'depositAmount'>) => void
 }
 
 export default function Step1Summary({ vehicle, options, draft, onComplete }: Props) {
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [dateStart, setDateStart] = useState(draft.dateStart)
   const [dateEnd, setDateEnd] = useState(draft.dateEnd)
+  const [pickupTime, setPickupTime] = useState(draft.pickupTime ?? '09:00')
+  const [returnTime, setReturnTime] = useState(draft.returnTime ?? '18:00')
   const [selectedIds, setSelectedIds] = useState<string[]>(draft.selectedOptionIds)
 
   const nbDays = useMemo(() => {
@@ -50,7 +63,7 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
   function handleContinue() {
     if (!canContinue) return
     onComplete({
-      dateStart, dateEnd, nbDays, selectedOptionIds: selectedIds,
+      dateStart, dateEnd, pickupTime, returnTime, nbDays, selectedOptionIds: selectedIds,
       baseAmount, optionsAmount, totalAmount, depositAmount: vehicle.deposit_amount,
     })
   }
@@ -127,10 +140,30 @@ export default function Step1Summary({ vehicle, options, draft, onComplete }: Pr
               onChange={setDateEnd}
             />
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Heure de départ</label>
+            <select
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-white"
+            >
+              {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Heure de retour</label>
+            <select
+              value={returnTime}
+              onChange={(e) => setReturnTime(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-white"
+            >
+              {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
         </div>
         {nbDays > 0 && (
           <p className="text-gold text-xs font-semibold mt-3">
-            ✓ {nbDays} jour{nbDays > 1 ? 's' : ''} — du {fmtDate(dateStart)} au {fmtDate(dateEnd)}
+            ✓ {nbDays} jour{nbDays > 1 ? 's' : ''} — du {fmtDate(dateStart)} à {pickupTime} au {fmtDate(dateEnd)} à {returnTime}
           </p>
         )}
       </div>

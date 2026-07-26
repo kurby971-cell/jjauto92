@@ -7,6 +7,8 @@ interface CreateBody {
   vehicleId: string
   dateStart: string
   dateEnd: string
+  pickupTime?: string
+  returnTime?: string
   selectedOptionIds: string[]
   driver: {
     firstName: string
@@ -23,6 +25,15 @@ interface CreateBody {
     idDocumentVerso: string | null
     idDocumentType: string | null
   }
+}
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+
+// Garantit une date-only ISO string "YYYY-MM-DD" pour le payload Make,
+// même si un appelant future passe un timestamp numérique ou un Date.
+function toDateOnlyISO(value: string | number | Date): string {
+  const d = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().split('T')[0]
 }
 
 function computeBaseAmount(
@@ -63,6 +74,12 @@ export async function POST(request: Request) {
   const { vehicleId, dateStart, dateEnd, selectedOptionIds, driver } = body
   if (!vehicleId || !dateStart || !dateEnd) {
     return NextResponse.json({ error: 'Champs obligatoires manquants' }, { status: 400 })
+  }
+
+  const pickupTime = body.pickupTime ?? '09:00'
+  const returnTime = body.returnTime ?? '18:00'
+  if (!TIME_RE.test(pickupTime) || !TIME_RE.test(returnTime)) {
+    return NextResponse.json({ error: 'Heure de départ ou de retour invalide' }, { status: 400 })
   }
 
   if (!driver?.firstName?.trim() || !driver?.lastName?.trim()) {
@@ -200,8 +217,8 @@ export async function POST(request: Request) {
       vehicle_id: vehicleId,
       start_date: dateStart,
       end_date: dateEnd,
-      pickup_time: '09:00',
-      return_time: '18:00',
+      pickup_time: pickupTime,
+      return_time: returnTime,
       status: 'pending',
       source: 'web',
       daily_rate_snapshot: vehicle.daily_rate,
@@ -317,10 +334,10 @@ export async function POST(request: Request) {
     customer_name: `${driver.firstName} ${driver.lastName}`,
     customer_phone: driver.phone,
     vehicle_name: `${vInfo?.brand ?? ''} ${vInfo?.model ?? ''}`.trim(),
-    start_date: dateStart,
-    end_date: dateEnd,
-    pickup_time: '09:00',
-    return_time: '18:00',
+    start_date: toDateOnlyISO(dateStart),
+    end_date: toDateOnlyISO(dateEnd),
+    pickup_time: pickupTime,
+    return_time: returnTime,
     delivery_address: '1 Allée de Lorraine, 92000 Nanterre',
     duration_days: nbDays,
     total_price: totalAmount,
