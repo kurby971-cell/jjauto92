@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
         const { data: res } = await db
           .from('reservations')
-          .select('reservation_number,customers(email)')
+          .select('reservation_number,start_date,end_date,pickup_time,return_time,pickup_location,deposit_amount,customers(first_name,last_name,email),vehicles(brand,model)')
           .eq('id', reservationId)
           .single()
 
@@ -63,6 +63,14 @@ export async function POST(request: Request) {
           amount: intent.amount / 100,
           currency: intent.currency.toUpperCase(),
           customerEmail: res?.customers?.email,
+          customerName: res?.customers ? `${res.customers.first_name ?? ''} ${res.customers.last_name ?? ''}`.trim() : undefined,
+          vehicleName: res?.vehicles ? `${res.vehicles.brand} ${res.vehicles.model}` : undefined,
+          startDate: res?.start_date,
+          endDate: res?.end_date,
+          pickupTime: res?.pickup_time ? String(res.pickup_time).slice(0, 5) : undefined,
+          returnTime: res?.return_time ? String(res.return_time).slice(0, 5) : undefined,
+          pickupLocation: res?.pickup_location,
+          depositAmount: res?.deposit_amount != null ? Number(res.deposit_amount) : undefined,
           status: 'succeeded',
         })
       }

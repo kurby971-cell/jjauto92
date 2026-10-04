@@ -43,6 +43,14 @@ export async function notifyMakePaymentReceived(payload: {
   amount: number
   currency: string
   customerEmail?: string
+  customerName?: string
+  vehicleName?: string
+  startDate?: string
+  endDate?: string
+  pickupTime?: string
+  returnTime?: string
+  pickupLocation?: string
+  depositAmount?: number
   status: string
 }) {
   const url = process.env.MAKE_WEBHOOK_URL_PAYMENT
