@@ -62,7 +62,7 @@ export default async function AdminDashboard() {
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'active').lt('end_date', today),
     db.from('deposits').select('*', { count: 'exact', head: true }).in('status', ['authorized', 'partially_captured']),
     db.from('deposits').select('*', { count: 'exact', head: true }).eq('status', 'authorized').lte('authorization_expiry', in2Days),
-    db.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', weekAgo),
+    db.from('payments').select('id, reservations!inner(status)', { count: 'exact', head: true }).eq('status', 'failed').neq('reservations.status', 'cancelled').gte('created_at', weekAgo),
     db.from('reservations')
       .select('id,reservation_number,start_date,pickup_time,vehicles(brand,model),customers(first_name,last_name)')
       .eq('status', 'confirmed')
