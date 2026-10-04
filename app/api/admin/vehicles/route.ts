@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     seats: Number(body.seats) || 5,
     doors: Number(body.doors) || 5,
     daily_rate: Number(body.daily_rate),
+    weekend_rate: body.weekend_rate ? Number(body.weekend_rate) : null,
     weekly_rate: body.weekly_rate ? Number(body.weekly_rate) : null,
     monthly_rate: body.monthly_rate ? Number(body.monthly_rate) : null,
     deposit_amount: Number(body.deposit_amount) || 500,

@@ -12,7 +12,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const INDEXABLE = process.env.SITE_INDEXABLE === 'true'
+
 export const metadata: Metadata = {
+  robots: INDEXABLE
+    ? { index: true, follow: true }
+    : { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false, noimageindex: true } },
   title: "JJ AUTO 92 — Location de véhicules premium en Île-de-France",
   description: "Location de voitures en Île-de-France, département 92. Véhicules premium, assurance incluse, livraison possible, assistance 24h/7j. Réservez en ligne en quelques clics.",
 };

@@ -6,7 +6,6 @@ import { breadcrumbListSchema, SITE_URL } from '@/lib/schema'
 export const metadata: Metadata = {
   title: 'Conditions Générales de Vente | JJ AUTO 92',
   description: 'Conditions Générales de Vente (CGV) de JJ AUTO 92 — J & J Automobiles SAS.',
-  robots: { index: true },
   alternates: { canonical: '/cgv' },
 }
 

@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/schema'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Site fermé : sitemap vide tant que SITE_INDEXABLE !== 'true'
+  if (process.env.SITE_INDEXABLE !== 'true') return []
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any
 

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const ALLOWED_DOC_TYPES = ['permis_recto', 'permis_verso', 'cni_recto', 'cni_verso', 'passeport', 'justificatif_domicile']
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(request: Request) {
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
   if (!file || !docType) {
     return NextResponse.json({ error: 'Fichier ou type manquant' }, { status: 400 })
   }
+  if (!ALLOWED_DOC_TYPES.includes(docType)) {
+    return NextResponse.json({ error: 'Type de document invalide' }, { status: 400 })
+  }
   if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
       { error: 'Format non accepté. Utilisez JPG, PNG, WEBP ou PDF.' },
@@ -29,7 +33,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Fichier trop volumineux (max 10 Mo)' }, { status: 400 })
   }
 
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const rawExt = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const ext = ['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(rawExt) ? rawExt : 'jpg'
   const path = `temp/${randomUUID()}/${docType}.${ext}`
 
   const supabase = createAdminClient()

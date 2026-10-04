@@ -1,7 +1,21 @@
 import type { NextConfig } from "next";
 
+// Interrupteur d'indexation Google : le site reste en noindex tant que
+// SITE_INDEXABLE n'est pas explicitement "true" (variable Netlify, puis redéploiement).
+const INDEXABLE = process.env.SITE_INDEXABLE === 'true'
+
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  async headers() {
+    if (INDEXABLE) return []
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },
+        ],
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {

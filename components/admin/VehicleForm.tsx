@@ -79,7 +79,7 @@ const COMMON_FEATURES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 interface Props {
-  vehicle?: Vehicle & { weekly_rate?: number | null; monthly_rate?: number | null }
+  vehicle?: Vehicle & { weekly_rate?: number | null; monthly_rate?: number | null; weekend_rate?: number | null }
 }
 
 export default function VehicleForm({ vehicle }: Props) {
@@ -105,6 +105,7 @@ export default function VehicleForm({ vehicle }: Props) {
 
   // Tarification
   const [dailyRate, setDailyRate] = useState(String(vehicle?.daily_rate ?? ''))
+  const [weekendRate, setWeekendRate] = useState(String(vehicle?.weekend_rate ?? ''))
   const [weeklyRate, setWeeklyRate] = useState(String(vehicle?.weekly_rate ?? ''))
   const [monthlyRate, setMonthlyRate] = useState(String(vehicle?.monthly_rate ?? ''))
   const [depositAmount, setDepositAmount] = useState(String(vehicle?.deposit_amount ?? 500))
@@ -167,6 +168,7 @@ export default function VehicleForm({ vehicle }: Props) {
       category, fuel_type: fuelType, transmission,
       seats: Number(seats), doors: Number(doors),
       daily_rate: Number(dailyRate),
+      weekend_rate: weekendRate ? Number(weekendRate) : null,
       weekly_rate: weeklyRate ? Number(weeklyRate) : null,
       monthly_rate: monthlyRate ? Number(monthlyRate) : null,
       deposit_amount: Number(depositAmount),
@@ -302,6 +304,11 @@ export default function VehicleForm({ vehicle }: Props) {
           <Field label="Prix / jour (€)" required>
             <Input type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)}
               placeholder="65" min="1" step="0.01" required />
+          </Field>
+          <Field label="Prix / week-end (€)">
+            <Input type="number" value={weekendRate} onChange={e => setWeekendRate(e.target.value)}
+              placeholder="300" min="1" step="0.01" />
+            <p className="text-xs text-gray-400 mt-1">Optionnel — forfait vendredi→dimanche, laisser vide pour utiliser le tarif jour</p>
           </Field>
           <Field label="Prix / semaine (€)">
             <Input type="number" value={weeklyRate} onChange={e => setWeeklyRate(e.target.value)}
