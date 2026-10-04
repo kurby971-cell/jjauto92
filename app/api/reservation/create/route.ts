@@ -327,7 +327,6 @@ export async function POST(request: Request) {
     .eq('id', vehicleId)
     .single()
 
-  const makeUrl = process.env.MAKE_WEBHOOK_URL_RESERVATION ?? '(non définie)'
   const makePayload = {
     reference: reservation.reservation_number,
     created_at: new Date().toISOString(),
@@ -345,8 +344,6 @@ export async function POST(request: Request) {
     status: 'pending' as const,
     notes_admin: null,
   }
-  console.log('[reservation/create] Make URL :', makeUrl)
-  console.log('[reservation/create] Make payload :', JSON.stringify({ event: 'reservation.created', ...makePayload }, null, 2))
 
   notifyMakeReservationCreated(makePayload)
 

@@ -1,14 +1,13 @@
 async function postToMake(url: string, payload: object): Promise<void> {
-  console.log('[Make] → POST', url)
-  console.log('[Make] payload', JSON.stringify(payload, null, 2))
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (process.env.MAKE_WEBHOOK_API_KEY) headers['x-make-apikey'] = process.env.MAKE_WEBHOOK_API_KEY
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     })
-    const body = await res.text()
-    console.log(`[Make] ${res.status} — ${body}`)
+    if (!res.ok) console.error(`[Make] webhook en échec — statut ${res.status}`)
   } catch (err) {
     console.error('[Make] fetch failed:', err)
   }
