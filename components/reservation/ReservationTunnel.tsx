@@ -180,6 +180,37 @@ export default function ReservationTunnel({ vehicle, rentalOptions, unavailabili
     }
   }
 
+  // Étape 3 : la réservation existe déjà — on l'annule (dates libérées, pré-autorisation
+  // relâchée) avant de revenir à l'étape 1 pour modifier dates ou informations.
+  const [cancelling, setCancelling] = useState(false)
+  async function handleRestart() {
+    if (cancelling) return
+    setCancelling(true)
+    setCreateError(null)
+    try {
+      if (draft?.reservationId) {
+        const res = await fetch('/api/reservation/abandon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reservationId: draft.reservationId }),
+        })
+        if (res.status === 409) {
+          const json = await res.json()
+          throw new Error(json.error ?? 'Un paiement a déjà été effectué.')
+        }
+      }
+      setClientSecret(null)
+      setDepositClientSecret(null)
+      updateDraft({ reservationId: null, reservationNumber: null })
+      setStep(1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      setCreateError((err as Error).message)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   function handleBack() {
     setStep((s) => Math.max(1, s - 1))
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -306,14 +337,24 @@ export default function ReservationTunnel({ vehicle, rentalOptions, unavailabili
           </div>
         )}
 
-        {/* Step 3: no back (reservation already created) */}
+        {/* Step 3 : réservation déjà créée — retour possible en l'annulant */}
         {step === 3 && (
-          <p className="text-center text-xs text-gray-400 mt-4">
-            Besoin de modifier quelque chose ?{' '}
-            <a href="tel:+33761422192" className="underline hover:text-navy transition-colors">
-              Appelez-nous : 07 61 42 21 92
-            </a>
-          </p>
+          <div className="text-center text-xs text-gray-400 mt-4 space-y-2">
+            <button
+              type="button"
+              onClick={handleRestart}
+              disabled={cancelling}
+              className="underline hover:text-navy transition-colors disabled:opacity-50"
+            >
+              {cancelling ? 'Annulation…' : 'Modifier mes dates ou mes informations'}
+            </button>
+            <p>
+              Besoin d&apos;aide ?{' '}
+              <a href="tel:+33761422192" className="underline hover:text-navy transition-colors">
+                Appelez-nous : 07 61 42 21 92
+              </a>
+            </p>
+          </div>
         )}
 
       </div>

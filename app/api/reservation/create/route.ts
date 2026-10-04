@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/stripe/server'
 import { notifyMakeReservationCreated } from '@/lib/make/notify'
 import { NextResponse } from 'next/server'
 import { computeBaseAmount } from '@/lib/pricing'
+import { expireStalePendingReservations } from '@/lib/reservations/abandon'
 
 interface CreateBody {
   vehicleId: string
@@ -79,6 +80,9 @@ export async function POST(request: Request) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any
+
+  // 0. Libère les dates des réservations dont le paiement n'a jamais été finalisé
+  await expireStalePendingReservations(db)
 
   // 1. Verify availability
   const { data: available, error: availErr } = await db.rpc('is_vehicle_available', {

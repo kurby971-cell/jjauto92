@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { expireStalePendingReservations } from '@/lib/reservations/abandon'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -10,6 +11,9 @@ export async function GET(request: Request) {
   if (!vehicleId || !startDate || !endDate) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await expireStalePendingReservations(createAdminClient() as any)
 
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Vehicle, RentalOption } from '@/lib/types'
+import { expireStalePendingReservations } from '@/lib/reservations/abandon'
 
 export type ReservedPeriod = {
   vehicle_id: string
@@ -120,6 +121,8 @@ export async function getAllVehicleSlugs(): Promise<{ slug: string }[]> {
 export async function getUpcomingReservationPeriods(): Promise<ReservedPeriod[]> {
   try {
     const db = createAdminClient()
+    // Libère les dates des réservations dont le paiement n'a jamais été finalisé
+    await expireStalePendingReservations(db)
     const today = new Date().toISOString().split('T')[0]
 
     const { data, error } = await db
