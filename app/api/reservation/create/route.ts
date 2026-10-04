@@ -345,7 +345,8 @@ export async function POST(request: Request) {
     notes_admin: null,
   }
 
-  notifyMakeReservationCreated(makePayload)
+  // Awaited : en serverless, un appel non attendu peut être interrompu après la réponse
+  await notifyMakeReservationCreated(makePayload)
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,

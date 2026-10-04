@@ -6,6 +6,7 @@ async function postToMake(url: string, payload: object): Promise<void> {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) console.error(`[Make] webhook en échec — statut ${res.status}`)
   } catch (err) {
