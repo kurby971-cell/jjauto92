@@ -122,7 +122,7 @@ export default async function AdminDashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Kpi label="CA du mois" value={fmtMoney(caMonth)} sub="Paiements confirmés ce mois" />
+        <Kpi label="Encaissé en ligne" value={fmtMoney(caMonth)} sub="Acomptes carte confirmés ce mois" />
         <Kpi label="En attente" value={String(pending ?? 0)} sub="Réservations à confirmer" accent={(pending ?? 0) > 0} />
         <Kpi label="Taux d'occupation" value={`${tauxOcc} %`} sub={`${inRental ?? 0} / ${totalVehicles ?? 0} en location`} />
         <Kpi label="Cautions actives" value={String(depositsActive ?? 0)} sub={`${totalClients ?? 0} clients en base`} />

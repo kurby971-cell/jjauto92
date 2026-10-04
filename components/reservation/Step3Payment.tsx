@@ -8,6 +8,7 @@ import {
 } from '@stripe/react-stripe-js'
 import type { Vehicle } from '@/lib/types'
 import type { ReservationDraft } from './types'
+import { computeUpfrontAmount, computeBalanceDue } from '@/lib/pricing'
 
 interface Props {
   vehicle: Vehicle
@@ -22,6 +23,9 @@ export default function Step3Payment({ vehicle, draft }: Props) {
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const upfront = computeUpfrontAmount(draft.totalAmount)
+  const balance = computeBalanceDue(draft.totalAmount)
+  const fmtEur = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €'
 
   const fmtDate = (iso: string) =>
     new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
@@ -79,11 +83,17 @@ export default function Step3Payment({ vehicle, draft }: Props) {
               </span>
             </div>
           )}
-          <div className="border-t border-navy-700 pt-3 flex justify-between items-baseline">
-            <span className="text-white font-bold">Total à payer</span>
-            <span className="text-gold font-extrabold text-2xl">
-              {draft.totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
-            </span>
+          <div className="border-t border-navy-700 pt-3 flex justify-between text-sm">
+            <span className="text-gray-400">Total de la location</span>
+            <span className="text-white font-semibold">{fmtEur(draft.totalAmount)}</span>
+          </div>
+          <div className="flex justify-between items-baseline">
+            <span className="text-white font-bold">Acompte à payer maintenant (20 %)</span>
+            <span className="text-gold font-extrabold text-2xl">{fmtEur(upfront)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400">Reste à régler en espèces le jour de la prise du véhicule</span>
+            <span className="text-white font-semibold">{fmtEur(balance)}</span>
           </div>
           {draft.reservationNumber && (
             <p className="text-gray-500 text-[10px] pt-1">Réf. {draft.reservationNumber}</p>
@@ -159,7 +169,7 @@ export default function Step3Payment({ vehicle, draft }: Props) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
-            Confirmer et payer — {draft.totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
+            Payer l&apos;acompte — {fmtEur(upfront)}
           </>
         )}
       </button>

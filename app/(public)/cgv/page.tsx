@@ -127,8 +127,8 @@ export default function CgvPage() {
               <div id="art4" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h2 className="text-navy font-extrabold text-base mb-3">Art. 4 — Processus de réservation et conclusion du contrat</h2>
                 <p><strong>4.1 Réservation en ligne.</strong> La réservation est effectuée via le formulaire disponible sur jjautomobiles.fr. Elle est considérée comme ferme et définitive à réception de la confirmation de paiement émise par notre système.</p>
-                <p className="mt-3"><strong>4.2 Paiement anticipé.</strong> Le montant total de la location est encaissé au moment de la réservation. Aucune option de paiement différé n&apos;est proposée.</p>
-                <p className="mt-3"><strong>4.3 Confirmation.</strong> Un email de confirmation récapitulant les modalités (véhicule, dates, tarif, lieu de prise en charge) est envoyé au Locataire dans les minutes suivant le paiement.</p>
+                <p className="mt-3"><strong>4.2 Acompte.</strong> La réservation est garantie par le versement d&apos;un acompte de <strong>20 %</strong> du prix de la location, réglé par carte bancaire au moment de la réservation et, au plus tard, <strong>48 heures</strong> avant la prise en charge du véhicule. Une réservation dont la prise en charge est prévue dans moins de 48 heures ne peut pas être effectuée en ligne : le Locataire est invité à contacter le Loueur.</p>
+                <p className="mt-3"><strong>4.3 Confirmation.</strong> Un email de confirmation récapitulant les modalités (véhicule, dates, acompte payé, solde restant dû, lieu de prise en charge) est envoyé au Locataire dans les minutes suivant le paiement de l&apos;acompte.</p>
                 <p className="mt-3"><strong>4.4 Modification de réservation.</strong> Toute modification est soumise à disponibilité et aux conditions tarifaires en vigueur au moment de la demande. Les demandes de modification doivent être formulées au moins <strong>48 heures</strong> avant la date de prise en charge, par téléphone ou email.</p>
               </div>
 
@@ -143,7 +143,7 @@ export default function CgvPage() {
                   <li><strong>Tarif mensuel :</strong> tarif forfaitaire pour une location de 30 jours consécutifs ou plus.</li>
                 </ul>
                 <p className="mt-3"><strong>5.3 Suppléments.</strong> Les services optionnels (siège enfant, GPS, conducteur supplémentaire, etc.) font l&apos;objet d&apos;une facturation complémentaire selon le tarif en vigueur. Les suppléments pour kilométrage excédentaire, carburant manquant ou dommages sont facturés en fin de location.</p>
-                <p className="mt-3"><strong>5.4 Paiement.</strong> Le paiement s&apos;effectue exclusivement par carte bancaire (Visa, Mastercard, American Express) via la plateforme sécurisée Stripe. Aucun paiement en espèces ni par chèque n&apos;est accepté pour le règlement de la location.</p>
+                <p className="mt-3"><strong>5.4 Paiement.</strong> L&apos;acompte de 20 % est réglé par carte bancaire (Visa, Mastercard, American Express) via la plateforme sécurisée Stripe. Le solde de la location est réglé <strong>en espèces</strong> le jour de la prise en charge du véhicule, contre remise d&apos;un reçu. Les chèques ne sont pas acceptés. Le règlement en espèces est soumis aux plafonds légaux en vigueur.</p>
               </div>
 
               {/* Art. 6 */}

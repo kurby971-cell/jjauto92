@@ -2,7 +2,10 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe/server'
 import { notifyMakeReservationCreated } from '@/lib/make/notify'
 import { NextResponse } from 'next/server'
-import { computeBaseAmount } from '@/lib/pricing'
+import {
+  computeBaseAmount, computeUpfrontAmount, computeBalanceDue,
+  hoursBeforePickup, MIN_HOURS_BEFORE_PICKUP, PICKUP_TOO_SOON_MESSAGE,
+} from '@/lib/pricing'
 import { expireStalePendingReservations } from '@/lib/reservations/abandon'
 
 interface CreateBody {
@@ -56,6 +59,10 @@ export async function POST(request: Request) {
   const returnTime = body.returnTime ?? '18:00'
   if (!TIME_RE.test(pickupTime) || !TIME_RE.test(returnTime)) {
     return NextResponse.json({ error: 'Heure de départ ou de retour invalide' }, { status: 400 })
+  }
+
+  if (hoursBeforePickup(dateStart, pickupTime, Date.now()) < MIN_HOURS_BEFORE_PICKUP) {
+    return NextResponse.json({ error: PICKUP_TOO_SOON_MESSAGE }, { status: 400 })
   }
 
   if (!driver?.firstName?.trim() || !driver?.lastName?.trim()) {
@@ -145,6 +152,8 @@ export async function POST(request: Request) {
     }
   }
   const totalAmount = baseAmount + optionsAmount
+  const upfrontAmount = computeUpfrontAmount(totalAmount)
+  const balanceDue = computeBalanceDue(totalAmount)
 
   // 4. Upsert customer by email
   const emailNorm = driver.email.toLowerCase().trim()
@@ -226,15 +235,17 @@ export async function POST(request: Request) {
   let paymentIntent
   try {
     paymentIntent = await getStripe().paymentIntents.create({
-      amount: Math.round(totalAmount * 100),
+      amount: Math.round(upfrontAmount * 100),
       currency: 'eur',
       metadata: {
         reservationId: reservation.id,
         reservationNumber: reservation.reservation_number,
         customerId,
+        totalAmount: String(totalAmount),
+        balanceDue: String(balanceDue),
       },
       automatic_payment_methods: { enabled: true },
-      description: `Réservation ${reservation.reservation_number} — JJ AUTO 92`,
+      description: `Acompte 20 % réservation ${reservation.reservation_number} — JJ AUTO 92`,
     })
   } catch (err) {
     console.error('[reservation/create] stripe paymentIntent:', err)
@@ -248,12 +259,12 @@ export async function POST(request: Request) {
     reservation_id: reservation.id,
     customer_id: customerId,
     stripe_payment_intent_id: paymentIntent.id,
-    amount: totalAmount,
+    amount: upfrontAmount,
     currency: 'eur',
     status: 'pending',
     type: 'reservation',
     refund_amount: 0,
-    metadata: {},
+    metadata: { kind: 'acompte', total_amount: totalAmount, balance_due: balanceDue },
   })
   if (payErr) {
     console.error('[reservation/create] payments insert:', payErr)
@@ -319,6 +330,8 @@ export async function POST(request: Request) {
     delivery_address: '1 Allée de Lorraine, 92000 Nanterre',
     duration_days: nbDays,
     total_price: totalAmount,
+    upfront_amount: upfrontAmount,
+    balance_due: balanceDue,
     deposit_amount: depositAmount,
     status: 'pending' as const,
     notes_admin: null,
@@ -330,6 +343,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,
     depositClientSecret,
+    upfrontAmount,
+    balanceDue,
     reservationId: reservation.id,
     reservationNumber: reservation.reservation_number,
   })

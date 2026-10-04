@@ -55,6 +55,10 @@ export default async function AdminReservationDetailPage({ params }: Props) {
   }
 
   const payments: Array<{ id: string; stripe_payment_intent_id: string; amount: number; status: string; type: string; created_at: string }> = r.payments ?? []
+  const paidOnline = payments
+    .filter((p) => p.status === 'succeeded')
+    .reduce((sum, p) => sum + Number(p.amount), 0)
+  const balanceToCollect = Math.max(0, Number(r.total_amount ?? 0) - paidOnline)
   const deposits: Array<{ id: string; stripe_payment_intent_id: string; amount: number; status: string; authorized_at: string | null; captured_amount: number | null; released_at: string | null }> = r.deposits ?? []
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -158,6 +162,13 @@ export default async function AdminReservationDetailPage({ params }: Props) {
           <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-gray-200">
             <span className="text-sm font-bold text-[#0D1B2A]">Total TTC</span>
             <span className="text-xl font-extrabold text-[#0D1B2A]">{fmtMoney(r.total_amount ?? 0)}</span>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+            <Row label="Acompte carte encaissé" value={fmtMoney(paidOnline)} />
+            <div className="flex justify-between items-baseline">
+              <span className="text-sm font-bold text-amber-700">Reste à encaisser en espèces</span>
+              <span className="text-lg font-extrabold text-amber-700">{fmtMoney(balanceToCollect)}</span>
+            </div>
           </div>
           {(r.deposit_amount ?? 0) > 0 && (
             <p className="text-xs text-gray-400 mt-2">Caution : {fmtMoney(r.deposit_amount)}</p>

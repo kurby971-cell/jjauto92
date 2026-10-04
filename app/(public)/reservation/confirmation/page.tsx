@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/server'
 import ClearReservationDraft from '@/components/reservation/ClearReservationDraft'
+import { computeUpfrontAmount, computeBalanceDue } from '@/lib/pricing'
+
+const fmtEur = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €'
 
 interface Props {
   searchParams: Promise<{
@@ -122,11 +125,17 @@ export default async function ConfirmationPage({ searchParams }: Props) {
                   <span className="text-gray-500">Durée</span>
                   <span className="text-navy font-semibold">{data.total_days} jour{data.total_days > 1 ? 's' : ''}</span>
                 </div>
-                <div className="border-t border-gray-100 pt-3 flex justify-between">
-                  <span className="font-bold text-navy">Total payé</span>
-                  <span className="font-extrabold text-navy text-xl">
-                    {Number(data.total_amount).toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
-                  </span>
+                <div className="border-t border-gray-100 pt-3 flex justify-between text-sm">
+                  <span className="text-gray-500">Total de la location</span>
+                  <span className="text-navy font-semibold">{fmtEur(Number(data.total_amount))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold text-navy">Acompte payé par carte (20 %)</span>
+                  <span className="font-extrabold text-navy text-xl">{fmtEur(computeUpfrontAmount(Number(data.total_amount)))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Reste à régler en espèces à la prise du véhicule</span>
+                  <span className="text-navy font-semibold">{fmtEur(computeBalanceDue(Number(data.total_amount)))}</span>
                 </div>
               </div>
             </div>
@@ -138,7 +147,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
                 {[
                   'Vous recevrez un email de confirmation avec tous les détails.',
                   `Présentez-vous le ${fmtDate(data.start_date)} à partir de 9h au 1 Allée de Lorraine, 92000 Nanterre.`,
-                  'Apportez votre permis de conduire et votre pièce d\'identité (la caution est déjà pré-autorisée).',
+                  'Apportez votre permis de conduire, votre pièce d\'identité et le solde de la location en espèces (la caution est déjà pré-autorisée).',
                   'Notre équipe vous remettra les clés et vous fera signer l\'état des lieux.',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-400">

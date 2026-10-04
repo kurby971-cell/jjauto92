@@ -55,3 +55,37 @@ export function describeBaseAmount(v: BaseRates, nbDays: number, dateStart: stri
   if (nbDays >= 7 && v.weekly_rate) return `${nbDays} jours · tarif semaine`
   return `${nbDays} jours · tarif week-end`
 }
+
+// ── Règlement : acompte par carte + solde en espèces ─────────────────────────
+// Acompte de 20 % du prix de la location, payé par carte au plus tard 48 h
+// avant la prise du véhicule ; le solde est réglé en espèces à la prise.
+export const UPFRONT_RATE = 0.2
+export const MIN_HOURS_BEFORE_PICKUP = 48
+
+export function computeUpfrontAmount(total: number): number {
+  return Math.round(total * UPFRONT_RATE * 100) / 100
+}
+
+export function computeBalanceDue(total: number): number {
+  return Math.round((total - computeUpfrontAmount(total)) * 100) / 100
+}
+
+// Instant UTC (ms) correspondant à une date + heure murales à Paris.
+function parisWallToUtcMs(date: string, time: string): number {
+  const guess = Date.parse(`${date}T${time}:00Z`)
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Paris', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(new Date(guess))
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value)
+  const wallAsUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'))
+  return guess - (wallAsUtc - guess)
+}
+
+export function hoursBeforePickup(dateStart: string, pickupTime: string, nowMs: number): number {
+  return (parisWallToUtcMs(dateStart, pickupTime) - nowMs) / 3_600_000
+}
+
+export const PICKUP_TOO_SOON_MESSAGE =
+  "L'acompte doit être réglé par carte au moins 48 h avant la prise du véhicule. " +
+  'Pour une prise en charge plus proche, contactez-nous au 07 61 42 21 92.'

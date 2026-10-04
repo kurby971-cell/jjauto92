@@ -41,7 +41,7 @@ const categories: FaqCategory[] = [
     questions: [
       {
         q: 'Quels moyens de paiement sont acceptés ?',
-        a: "Nous acceptons les cartes Visa, Mastercard et American Express via Stripe, 100 % sécurisé. Les paiements en espèces ne sont pas acceptés pour des raisons de traçabilité.",
+        a: "Un acompte de 20 % du prix de la location se règle par carte (Visa, Mastercard, American Express) via Stripe, 100 % sécurisé, au plus tard 48 h avant la prise du véhicule. Le solde se règle en espèces le jour de la prise du véhicule.",
       },
       {
         q: 'À quoi sert la caution et quand est-elle restituée ?',

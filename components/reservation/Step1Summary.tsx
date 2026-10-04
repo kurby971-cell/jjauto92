@@ -6,7 +6,14 @@ import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
 import type { ReservationDraft } from './types'
 import DatePickerInput from '@/components/ui/DatePickerInput'
 import { buildBlockedDateSet, hasBlockedInRange } from '@/lib/availability'
-import { computeVehicleBaseAmount, describeBaseAmount } from '@/lib/pricing'
+import {
+  computeVehicleBaseAmount, describeBaseAmount, computeUpfrontAmount, computeBalanceDue,
+  hoursBeforePickup, MIN_HOURS_BEFORE_PICKUP, PICKUP_TOO_SOON_MESSAGE,
+} from '@/lib/pricing'
+
+// Hors composant : l'heure courante n'est lue qu'à l'appel, pas pendant le rendu.
+const isPickupTooSoon = (dateStart: string, pickupTime: string) =>
+  hoursBeforePickup(dateStart, pickupTime, Date.now()) < MIN_HOURS_BEFORE_PICKUP
 
 const FUEL_LABELS: Record<string, string> = {
   essence: 'Essence', diesel: 'Diesel', electrique: 'Électrique',
@@ -62,6 +69,9 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
       .reduce((sum, o) => sum + o.price_per_day * nbDays + o.price_fixed, 0)
   }, [options, selectedIds, nbDays])
   const totalAmount = baseAmount + optionsAmount
+  const upfrontAmount = computeUpfrontAmount(totalAmount)
+  const balanceDue = computeBalanceDue(totalAmount)
+  const [soonError, setSoonError] = useState(false)
 
   const primaryPhoto = vehicle.photos?.find((p) => p.is_primary) ?? vehicle.photos?.[0]
   const canContinue = nbDays > 0 && !rangeIsBlocked
@@ -72,6 +82,11 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
 
   function handleContinue() {
     if (!canContinue) return
+    if (isPickupTooSoon(dateStart, pickupTime)) {
+      setSoonError(true)
+      return
+    }
+    setSoonError(false)
     onComplete({
       dateStart, dateEnd, pickupTime, returnTime, nbDays, selectedOptionIds: selectedIds,
       baseAmount, optionsAmount, totalAmount, depositAmount: vehicle.deposit_amount,
@@ -249,6 +264,17 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
               <span className="text-white font-bold">Total location</span>
               <span className="text-gold font-extrabold text-xl">{totalAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
             </div>
+            <div className="flex justify-between text-sm pt-1">
+              <span className="text-white font-semibold">Acompte par carte (20 %)</span>
+              <span className="text-gold font-bold">{upfrontAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Solde en espèces à la prise du véhicule</span>
+              <span className="text-white font-semibold">{balanceDue.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €</span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              L&apos;acompte se règle par carte au plus tard 48 h avant la prise du véhicule.
+            </p>
             <div className="flex justify-between text-xs text-gray-500 pt-1">
               <span>Caution (remboursée)</span>
               <span>{vehicle.deposit_amount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
@@ -258,6 +284,12 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
           <p className="text-gray-500 text-sm">Sélectionnez vos dates pour voir le prix total.</p>
         )}
       </div>
+
+      {soonError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+          {PICKUP_TOO_SOON_MESSAGE}
+        </div>
+      )}
 
       {/* CTA */}
       <button

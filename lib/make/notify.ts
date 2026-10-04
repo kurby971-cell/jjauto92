@@ -27,6 +27,8 @@ export async function notifyMakeReservationCreated(payload: {
   delivery_address: string
   duration_days: number
   total_price: number
+  upfront_amount: number
+  balance_due: number
   deposit_amount: number
   status: string
   notes_admin: string | null
@@ -41,6 +43,8 @@ export async function notifyMakePaymentReceived(payload: {
   reservationNumber?: string
   paymentIntentId: string
   amount: number
+  totalAmount?: number
+  balanceDue?: number
   currency: string
   customerEmail?: string
   customerName?: string
