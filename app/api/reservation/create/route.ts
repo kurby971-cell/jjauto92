@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe/server'
 import { notifyMakeReservationCreated } from '@/lib/make/notify'
 import { NextResponse } from 'next/server'
+import { computeBaseAmount } from '@/lib/pricing'
 
 interface CreateBody {
   vehicleId: string
@@ -34,32 +35,6 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 function toDateOnlyISO(value: string | number | Date): string {
   const d = value instanceof Date ? value : new Date(value)
   return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().split('T')[0]
-}
-
-function computeBaseAmount(
-  nbDays: number,
-  dailyRate: number,
-  weeklyRate: number | null,
-  monthlyRate: number | null,
-  weekendRate: number | null,
-  dateStart: string,
-): number {
-  if (nbDays >= 30 && monthlyRate) {
-    const months = Math.floor(nbDays / 30)
-    const remaining = nbDays % 30
-    return months * monthlyRate + remaining * dailyRate
-  }
-  if (nbDays >= 7 && weeklyRate) {
-    const weeks = Math.floor(nbDays / 7)
-    const remaining = nbDays % 7
-    return weeks * weeklyRate + remaining * dailyRate
-  }
-  // Weekend rate for 2-3 day rentals starting Friday or Saturday
-  if ((nbDays === 2 || nbDays === 3) && weekendRate) {
-    const dow = new Date(dateStart + 'T00:00:00').getDay() // 0=Sun,5=Fri,6=Sat
-    if (dow === 5 || dow === 6) return weekendRate
-  }
-  return nbDays * dailyRate
 }
 
 export async function POST(request: Request) {

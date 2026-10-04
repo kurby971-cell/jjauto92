@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import type { Vehicle, RentalOption } from '@/lib/types'
 import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
+import { computeVehicleBaseAmount, describeBaseAmount } from '@/lib/pricing'
 import { dateFromISO, addDaysISO as addDays, daysBetweenISO as daysBetween, buildBlockedDateSet as buildBlockedSet, hasBlockedInRange } from '@/lib/availability'
 
 // ── Calendar helpers ────────────────────────────────────────────
@@ -18,6 +19,11 @@ function isoFromParts(y: number, m: number, d: number) {
 }
 
 // ── Pricing ──────────────────────────────────────────────────────
+// Grille tarifaire : prix forfaitaire réel de chaque durée type
+function tariffPrice(v: Vehicle, days: number): number {
+  return days === 2 && v.weekend_rate ? Number(v.weekend_rate) : computeVehicleBaseAmount(v, days, null)
+}
+
 const TARIFF_ROWS = [
   { label: '1 jour', days: 1 },
   { label: 'Week-end (2 j)', days: 2 },
@@ -77,7 +83,7 @@ export default function VehicleBookingPanel({ vehicle, options, unavailabilities
 
   // ── Pricing calculation ───────────────────────────────────────
   const nbDays = selStart && selEnd ? daysBetween(selStart, selEnd) : 0
-  const baseTotal = nbDays * vehicle.daily_rate
+  const baseTotal = useMemo(() => computeVehicleBaseAmount(vehicle, nbDays, selStart), [vehicle, nbDays, selStart])
 
   const optionsTotal = useMemo(() => {
     return [...selectedOptions].reduce((sum, id) => {
@@ -194,8 +200,8 @@ export default function VehicleBookingPanel({ vehicle, options, unavailabilities
                   >
                     <span className="text-gray-600">{label}</span>
                     <div className="text-right">
-                      <span className="font-bold text-navy">{(vehicle.daily_rate * days).toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
-                      <span className="text-gray-400 text-xs ml-1">({vehicle.daily_rate} €/j)</span>
+                      <span className="font-bold text-navy">{tariffPrice(vehicle, days).toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
+                      <span className="text-gray-400 text-xs ml-1">({Math.round((tariffPrice(vehicle, days) / days) * 100) / 100} €/j)</span>
                     </div>
                   </div>
                 ))}
@@ -369,7 +375,7 @@ export default function VehicleBookingPanel({ vehicle, options, unavailabilities
                 <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Récapitulatif</p>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    {nbDays} jour{nbDays > 1 ? 's' : ''} × {vehicle.daily_rate} €
+                    {describeBaseAmount(vehicle, nbDays, selStart)}
                   </span>
                   <span className="font-semibold text-navy">{baseTotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
                 </div>

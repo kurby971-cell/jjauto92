@@ -6,6 +6,7 @@ import type { UnavailabilityPeriod } from '@/lib/supabase/queries'
 import type { ReservationDraft } from './types'
 import DatePickerInput from '@/components/ui/DatePickerInput'
 import { buildBlockedDateSet, hasBlockedInRange } from '@/lib/availability'
+import { computeVehicleBaseAmount, describeBaseAmount } from '@/lib/pricing'
 
 const FUEL_LABELS: Record<string, string> = {
   essence: 'Essence', diesel: 'Diesel', electrique: 'Électrique',
@@ -54,7 +55,7 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
     return Math.round((new Date(dateEnd).getTime() - new Date(dateStart).getTime()) / 86_400_000)
   }, [dateStart, dateEnd])
 
-  const baseAmount = nbDays * vehicle.daily_rate
+  const baseAmount = computeVehicleBaseAmount(vehicle, nbDays, dateStart || null)
   const optionsAmount = useMemo(() => {
     return options
       .filter((o) => selectedIds.includes(o.id))
@@ -232,7 +233,7 @@ export default function Step1Summary({ vehicle, options, draft, unavailabilities
         {nbDays > 0 ? (
           <div className="space-y-2.5">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">{nbDays} jour{nbDays > 1 ? 's' : ''} × {vehicle.daily_rate} €</span>
+              <span className="text-gray-400">{describeBaseAmount(vehicle, nbDays, dateStart || null)}</span>
               <span className="text-white font-semibold">{baseAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €</span>
             </div>
             {options.filter((o) => selectedIds.includes(o.id)).map((opt) => {
