@@ -43,7 +43,7 @@ export async function POST(
   const paid = online.reduce((sum, p) => sum + Number(p.amount), 0)
   const total = Number(r.total_amount)
 
-  await notifyMakePaymentReceived({
+  const sent = await notifyMakePaymentReceived({
     reservationId: r.id,
     reservationNumber: r.reservation_number,
     paymentIntentId: online[0].stripe_payment_intent_id as string,
@@ -63,5 +63,8 @@ export async function POST(
     status: 'succeeded',
   })
 
+  if (!sent.ok) {
+    return NextResponse.json({ error: `Make n'a pas accepté l'envoi (${sent.detail ?? 'erreur inconnue'})` }, { status: 502 })
+  }
   return NextResponse.json({ success: true, to: r.customers.email })
 }

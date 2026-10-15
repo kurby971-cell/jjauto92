@@ -1,4 +1,4 @@
-async function postToMake(url: string, payload: object): Promise<void> {
+async function postToMake(url: string, payload: object): Promise<{ ok: boolean; detail?: string }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (process.env.MAKE_WEBHOOK_API_KEY) headers['x-make-apikey'] = process.env.MAKE_WEBHOOK_API_KEY
   try {
@@ -8,9 +8,15 @@ async function postToMake(url: string, payload: object): Promise<void> {
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(5000),
     })
-    if (!res.ok) console.error(`[Make] webhook en échec — statut ${res.status}`)
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 200)
+      console.error(`[Make] webhook en échec — statut ${res.status} ${body}`)
+      return { ok: false, detail: `statut ${res.status} ${body}`.trim() }
+    }
+    return { ok: true }
   } catch (err) {
     console.error('[Make] fetch failed:', err)
+    return { ok: false, detail: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -58,8 +64,8 @@ export async function notifyMakePaymentReceived(payload: {
   status: string
 }) {
   const url = process.env.MAKE_WEBHOOK_URL_PAYMENT
-  if (!url) return
-  await postToMake(url, { event: 'payment.received', ...paymentWording(payload), ...payload })
+  if (!url) return { ok: false, detail: 'MAKE_WEBHOOK_URL_PAYMENT absente' }
+  return postToMake(url, { event: 'payment.received', ...paymentWording(payload), ...payload })
 }
 
 const eur = (n: number) => `${n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
@@ -88,6 +94,5 @@ function paymentWording(p: { amount: number; totalAmount?: number; balanceDue?: 
 export async function notifyMakeAdminDigest(payload: { subject: string; html: string; total: number }) {
   const url = process.env.MAKE_WEBHOOK_URL_ALERT
   if (!url) return false
-  await postToMake(url, { event: 'admin.daily_alerts', ...payload })
-  return true
+  return (await postToMake(url, { event: 'admin.daily_alerts', ...payload })).ok
 }
