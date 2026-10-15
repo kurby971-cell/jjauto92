@@ -16,7 +16,8 @@ export default async function AdminCautionsPage() {
 
   const activeStatuses = ['authorized', 'partially_captured']
   const active = (data ?? []).filter((d: { status: string }) => activeStatuses.includes(d.status))
-  const archived = (data ?? []).filter((d: { status: string }) => !activeStatuses.includes(d.status))
+  const awaiting = (data ?? []).filter((d: { status: string }) => d.status === 'pending')
+  const archived = (data ?? []).filter((d: { status: string }) => !activeStatuses.includes(d.status) && d.status !== 'pending')
 
   return (
     <div>
@@ -33,6 +34,20 @@ export default async function AdminCautionsPage() {
         </h2>
         <DepositsTable deposits={active} />
       </div>
+
+      {/* En attente d'autorisation par le client */}
+      {awaiting.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+            En attente du client ({awaiting.length})
+          </h2>
+          <p className="text-xs text-gray-500 mb-3">
+            Lien / QR code généré depuis la fiche de la réservation : le client doit pré-autoriser sa carte (à la prise du véhicule).
+          </p>
+          <DepositsTable deposits={awaiting} />
+        </div>
+      )}
 
       {/* Archived */}
       <div>

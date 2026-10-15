@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { CustomerDoc } from '@/lib/admin/customer-documents'
 
 export interface PendingDoc {
   customerId: string
@@ -13,6 +14,7 @@ export interface PendingDoc {
   startDate: string
   totalAmount: number
   createdAt: string
+  documents: CustomerDoc[]
 }
 
 const fmtDate = (iso: string) =>
@@ -114,11 +116,32 @@ export default function DocumentsQueue({ items }: { items: PendingDoc[] }) {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-50 bg-amber-50 rounded-xl p-3">
-                <p className="text-amber-700 text-xs font-medium">
-                  <strong>Note :</strong> Les documents (permis recto/verso, pièce d'identité) sont stockés dans Supabase Storage.
-                  Accédez au tableau de bord Supabase pour les visualiser directement avant de valider ce conducteur.
-                </p>
+              <div className="mt-4 pt-4 border-t border-gray-50">
+                {item.documents.length === 0 ? (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs font-medium">
+                    Aucun document déposé par ce conducteur : demandez-lui le permis et la pièce d&apos;identité avant de valider.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {item.documents.map((d) => (
+                      <a
+                        key={d.name}
+                        href={d.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group block border border-gray-200 rounded-xl overflow-hidden hover:border-[#C9A84C] transition-colors"
+                      >
+                        {d.isImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={d.url} alt={d.label} className="w-full h-24 object-cover bg-gray-50" />
+                        ) : (
+                          <div className="w-full h-24 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400">PDF</div>
+                        )}
+                        <p className="px-2 py-1.5 text-[11px] font-semibold text-gray-700 group-hover:text-[#A07830]">{d.label}</p>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

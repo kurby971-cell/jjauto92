@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import StatusBadge from '@/components/admin/StatusBadge'
+import { listCustomerDocuments, type CustomerDoc } from '@/lib/admin/customer-documents'
+import { withCustomerStats } from '@/lib/admin/customer-stats'
 
 export const metadata: Metadata = { title: 'Détail client — Admin JJ AUTO 92' }
 
@@ -25,7 +27,7 @@ export default async function AdminClientDetailPage({ params }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any
 
-  const [{ data: c }, { data: reservations }, { data: documents }] = await Promise.all([
+  const [{ data: c }, { data: reservations }, documents] = await Promise.all([
     db.from('customers')
       .select('id,first_name,last_name,email,phone,date_of_birth,address_street,address_city,address_postal_code,address_country,driving_license_number,driving_license_expiry,is_verified,verified_at,is_blacklisted,blacklist_reason,total_reservations,total_spent,admin_notes,created_at,auth_user_id')
       .eq('id', id)
@@ -35,13 +37,11 @@ export default async function AdminClientDetailPage({ params }: Props) {
       .eq('customer_id', id)
       .order('created_at', { ascending: false })
       .limit(20),
-    db.from('documents')
-      .select('id,type,file_url,uploaded_at,is_verified')
-      .eq('customer_id', id)
-      .order('uploaded_at', { ascending: false }),
+    listCustomerDocuments(db, id),
   ])
 
   if (!c) notFound()
+  const [stats] = await withCustomerStats(db, [c])
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -124,8 +124,8 @@ export default async function AdminClientDetailPage({ params }: Props) {
 
         {/* Stats */}
         <Section title="Statistiques">
-          <Row label="Réservations" value={c.total_reservations} />
-          <Row label="Total dépensé" value={fmtMoney(c.total_spent ?? 0)} />
+          <Row label="Réservations" value={stats.total_reservations} />
+          <Row label="Total dépensé" value={fmtMoney(stats.total_spent)} />
           {c.auth_user_id && <Row label="Compte en ligne" value="Oui" />}
         </Section>
 
@@ -141,20 +141,23 @@ export default async function AdminClientDetailPage({ params }: Props) {
         {documents && documents.length > 0 && (
           <div className="lg:col-span-2">
             <Section title={`Documents (${documents.length})`}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {documents.map((doc: { id: string; type: string; file_url: string | null; uploaded_at: string; is_verified: boolean }) => (
-                  <div key={doc.id} className="border border-gray-100 rounded-xl p-3 text-sm">
-                    <p className="font-semibold text-[#0D1B2A] capitalize">{doc.type.replace(/_/g, ' ')}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{fmtDateTime(doc.uploaded_at)}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <StatusBadge status={doc.is_verified ? 'verified' : 'unverified'} type="customer" />
-                      {doc.file_url && (
-                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-xs text-[#C9A84C] hover:underline">
-                          Voir
-                        </a>
-                      )}
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {documents.map((d: CustomerDoc) => (
+                  <a
+                    key={d.name}
+                    href={d.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group block border border-gray-200 rounded-xl overflow-hidden hover:border-[#C9A84C] transition-colors"
+                  >
+                    {d.isImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={d.url} alt={d.label} className="w-full h-24 object-cover bg-gray-50" />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400">PDF</div>
+                    )}
+                    <p className="px-2 py-1.5 text-[11px] font-semibold text-gray-700 group-hover:text-[#A07830]">{d.label}</p>
+                  </a>
                 ))}
               </div>
             </Section>

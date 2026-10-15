@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import DocumentsQueue from '@/components/admin/DocumentsQueue'
+import { listCustomerDocuments } from '@/lib/admin/customer-documents'
 
 export const metadata: Metadata = { title: 'Documents — Admin JJ AUTO 92' }
 
@@ -54,14 +55,21 @@ export default async function AdminDocumentsPage() {
     return true
   })
 
+  const items = await Promise.all(
+    unique.map(async (u: { customerId: string }) => ({
+      ...u,
+      documents: await listCustomerDocuments(db, u.customerId),
+    })),
+  )
+
   return (
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-extrabold text-[#0D1B2A]">Validation documents</h1>
-          {unique.length > 0 && (
+          {items.length > 0 && (
             <span className="bg-amber-500 text-white text-xs font-black px-2.5 py-1 rounded-full">
-              {unique.length}
+              {items.length}
             </span>
           )}
         </div>
@@ -69,7 +77,7 @@ export default async function AdminDocumentsPage() {
           Conducteurs dont les documents n'ont pas encore été vérifiés pour des réservations à venir.
         </p>
       </div>
-      <DocumentsQueue items={unique} />
+      <DocumentsQueue items={items} />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import {
   hoursBeforePickup, MIN_HOURS_BEFORE_PICKUP, PICKUP_TOO_SOON_MESSAGE,
 } from '@/lib/pricing'
 import { expireStalePendingReservations } from '@/lib/reservations/abandon'
+import { persistReservationDocuments } from '@/lib/reservations/documents'
 
 interface CreateBody {
   vehicleId: string
@@ -230,6 +231,14 @@ export async function POST(request: Request) {
     console.error('[reservation/create] reservation insert:', resErr)
     return NextResponse.json({ error: resErr?.message ?? 'Erreur création réservation' }, { status: 500 })
   }
+
+  // 5b. Range les documents déposés (permis, pièce d'identité) dans le dossier du client
+  await persistReservationDocuments(db, customerId, reservation.id, [
+    body.documents?.licenseRecto,
+    body.documents?.licenseVerso,
+    body.documents?.idDocument,
+    body.documents?.idDocumentVerso,
+  ])
 
   // 6. Create Stripe PaymentIntent (rental)
   let paymentIntent

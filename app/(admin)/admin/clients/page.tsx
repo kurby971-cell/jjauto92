@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
-import ClientsTable from '@/components/admin/ClientsTable'
+import ClientsTable, { type ClientRow } from '@/components/admin/ClientsTable'
+import { withCustomerStats } from '@/lib/admin/customer-stats'
 
 export const metadata: Metadata = { title: 'Clients — Admin JJ AUTO 92' }
 
@@ -14,6 +15,8 @@ export default async function AdminClientsPage() {
     .order('created_at', { ascending: false })
     .limit(500)
 
+  const clients = await withCustomerStats(db, (data ?? []) as ClientRow[])
+
   return (
     <div>
       <div className="mb-6">
@@ -22,7 +25,7 @@ export default async function AdminClientsPage() {
           {(data ?? []).length} client{(data ?? []).length > 1 ? 's' : ''} · Vérifiez les documents, gérez les accès et ajoutez des notes internes.
         </p>
       </div>
-      <ClientsTable clients={data ?? []} />
+      <ClientsTable clients={clients} />
     </div>
   )
 }

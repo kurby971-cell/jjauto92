@@ -29,16 +29,15 @@ export default async function AdminDashboard() {
   const firstOfMonth = `${today.slice(0, 8)}01T00:00:00+02:00`
   const in7Days = daysFromNow(7).toISOString().split('T')[0]
   const in2Days = daysFromNow(2).toISOString()
+  const in30Days = daysFromNow(30).toISOString().split('T')[0]
   const weekAgo = daysFromNow(-7).toISOString()
 
   const [
     { data: paymentsMonth },
-    { count: pending },
     { count: active },
     { count: startToday },
     { count: returnToday },
     { count: totalVehicles },
-    { count: inRental },
     { count: totalClients },
     { data: recent },
     { count: lateReturns },
@@ -46,14 +45,15 @@ export default async function AdminDashboard() {
     { count: depositsExpiring },
     { count: failedPayments },
     { data: upcoming },
+    { data: toCollectRows },
+    { data: horizonRows },
+    { data: unverifiedRows },
   ] = await Promise.all([
     db.from('payments').select('amount').eq('status', 'succeeded').not('stripe_payment_intent_id', 'is', null).gte('created_at', firstOfMonth),
-    db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('start_date', today).in('status', ['confirmed', 'active']),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('end_date', today).eq('status', 'active'),
     db.from('vehicles').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    db.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'en_location'),
     db.from('customers').select('*', { count: 'exact', head: true }),
     db.from('reservations')
       .select('id,reservation_number,status,start_date,end_date,total_amount,total_days,vehicles(brand,model),customers(first_name,last_name)')
@@ -64,16 +64,54 @@ export default async function AdminDashboard() {
     db.from('deposits').select('*', { count: 'exact', head: true }).eq('status', 'authorized').lte('authorization_expiry', in2Days),
     db.from('payments').select('id, reservations!inner(status)', { count: 'exact', head: true }).eq('status', 'failed').neq('reservations.status', 'cancelled').gte('created_at', weekAgo),
     db.from('reservations')
-      .select('id,reservation_number,start_date,pickup_time,vehicles(brand,model),customers(first_name,last_name)')
+      .select('id,reservation_number,start_date,pickup_time,total_amount,payments(amount,status),vehicles(brand,model),customers(first_name,last_name,is_verified)')
       .eq('status', 'confirmed')
       .gte('start_date', today)
       .lte('start_date', in7Days)
       .order('start_date', { ascending: true })
       .limit(6),
+    db.from('reservations')
+      .select('total_amount,payments(amount,status)')
+      .in('status', ['confirmed', 'active']),
+    db.from('reservations')
+      .select('start_date,end_date')
+      .in('status', ['confirmed', 'active'])
+      .lt('start_date', in30Days)
+      .gt('end_date', today),
+    db.from('reservations')
+      .select('customer_id,customers!inner(is_verified)')
+      .in('status', ['confirmed', 'active'])
+      .eq('customers.is_verified', false),
   ])
 
   const caMonth = (paymentsMonth ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount), 0)
-  const tauxOcc = (totalVehicles ?? 0) > 0 ? Math.round(((inRental ?? 0) / (totalVehicles ?? 1)) * 100) : 0
+  type PayLite = { amount: number; status: string }
+  const balanceOf = (total: number, payments: unknown) =>
+    Math.max(
+      0,
+      Math.round(
+        (Number(total) -
+          ([] as PayLite[]).concat((payments as PayLite[]) ?? [])
+            .filter((p) => p.status === 'succeeded')
+            .reduce((sum, p) => sum + Number(p.amount), 0)) * 100,
+      ) / 100,
+    )
+  const cashToCollect = (toCollectRows ?? []).reduce(
+    (sum: number, r: { total_amount: number; payments: unknown }) => sum + balanceOf(r.total_amount, r.payments),
+    0,
+  )
+
+  // Occupation sur les 30 prochains jours : jours loués / (véhicules × 30)
+  const DAY = 86_400_000
+  const t0 = Date.parse(today)
+  const t1 = t0 + 30 * DAY
+  const bookedDays = (horizonRows ?? []).reduce((sum: number, r: { start_date: string; end_date: string }) => {
+    const a = Math.max(Date.parse(r.start_date), t0)
+    const b = Math.min(Date.parse(r.end_date), t1)
+    return sum + Math.max(0, Math.round((b - a) / DAY))
+  }, 0)
+  const tauxOcc = (totalVehicles ?? 0) > 0 ? Math.round((bookedDays / ((totalVehicles ?? 1) * 30)) * 100) : 0
+  const docsToVerify = new Set((unverifiedRows ?? []).map((r: { customer_id: string }) => r.customer_id)).size
 
   type RecentRow = {
     id: string; reservation_number: string; status: string
@@ -83,6 +121,7 @@ export default async function AdminDashboard() {
   }
 
   const alerts = [
+    { n: docsToVerify, label: 'conducteur(s) à vérifier avant le départ', href: '/admin/documents', tone: 'amber' },
     { n: lateReturns ?? 0, label: 'retour(s) en retard', href: '/admin/reservations', tone: 'red' },
     { n: depositsExpiring ?? 0, label: 'caution(s) expirant sous 48 h', href: '/admin/cautions', tone: 'red' },
     { n: failedPayments ?? 0, label: 'paiement(s) échoué(s) sur 7 jours', href: '/admin/reservations', tone: 'amber' },
@@ -90,8 +129,9 @@ export default async function AdminDashboard() {
 
   type UpcomingRow = {
     id: string; reservation_number: string; start_date: string; pickup_time: string | null
+    total_amount: number; payments: unknown
     vehicles: { brand: string; model: string } | null
-    customers: { first_name: string; last_name: string } | null
+    customers: { first_name: string; last_name: string; is_verified: boolean } | null
   }
 
   return (
@@ -123,8 +163,8 @@ export default async function AdminDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Kpi label="Encaissé en ligne" value={fmtMoney(caMonth)} sub="Acomptes carte confirmés ce mois" />
-        <Kpi label="En attente" value={String(pending ?? 0)} sub="Réservations à confirmer" accent={(pending ?? 0) > 0} />
-        <Kpi label="Taux d'occupation" value={`${tauxOcc} %`} sub={`${inRental ?? 0} / ${totalVehicles ?? 0} en location`} />
+        <Kpi label="Espèces à encaisser" value={fmtMoney(cashToCollect)} sub="Soldes dus à la prise du véhicule" accent={cashToCollect > 0} />
+        <Kpi label="Occupation 30 jours" value={`${tauxOcc} %`} sub={`${totalVehicles ?? 0} véhicule(s) actif(s)`} />
         <Kpi label="Cautions actives" value={String(depositsActive ?? 0)} sub={`${totalClients ?? 0} clients en base`} />
       </div>
 
@@ -158,7 +198,13 @@ export default async function AdminDashboard() {
                 {r.customers ? `${r.customers.first_name} ${r.customers.last_name}` : '—'}
                 {r.vehicles ? ` · ${r.vehicles.brand} ${r.vehicles.model}` : ''}
               </span>
-              <span className="text-gray-500 text-xs">{fmtDate(r.start_date)}{r.pickup_time ? ` à ${r.pickup_time.slice(0, 5)}` : ''}</span>
+              <span className="text-xs text-right">
+                <span className="text-gray-500">{fmtDate(r.start_date)}{r.pickup_time ? ` à ${r.pickup_time.slice(0, 5)}` : ''}</span>
+                <span className="block mt-0.5 font-semibold">
+                  <span className="text-gray-700">Solde {fmtMoney(balanceOf(r.total_amount, r.payments))}</span>
+                  {r.customers && !r.customers.is_verified && <span className="ml-2 text-amber-600">Docs à vérifier</span>}
+                </span>
+              </span>
             </li>
           ))}
         </ul>
