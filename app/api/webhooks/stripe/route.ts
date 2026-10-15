@@ -83,13 +83,24 @@ export async function POST(request: Request) {
       // Deposit pre-authorization confirmed (capture_method: manual)
       const intent = event.data.object
       if (intent.metadata?.type === 'deposit') {
+        // Échéance réelle de la pré-autorisation : 7 jours par défaut, davantage si l'autorisation étendue a été accordée
+        let expiry = new Date(Date.now() + 7 * 24 * 3600 * 1000)
+        try {
+          const chargeId = typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id
+          if (chargeId) {
+            const charge = await getStripe().charges.retrieve(chargeId)
+            const captureBefore = charge.payment_method_details?.card?.capture_before
+            if (captureBefore) expiry = new Date(captureBefore * 1000)
+          }
+        } catch (err) {
+          console.error('[Stripe] lecture capture_before impossible, échéance 7 jours:', err)
+        }
         await db
           .from('deposits')
           .update({
             status: 'authorized',
             authorized_at: new Date().toISOString(),
-            // Stripe card pre-authorizations expire after 7 days
-            authorization_expiry: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+            authorization_expiry: expiry.toISOString(),
           })
           .eq('stripe_payment_intent_id', intent.id)
       }

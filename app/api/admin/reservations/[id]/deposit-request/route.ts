@@ -52,21 +52,32 @@ export async function POST(
     return NextResponse.json({ error: 'La caution de cette réservation a déjà été encaissée' }, { status: 409 })
   }
 
+  // Autorisation étendue (jusqu'à ~30 jours selon le réseau) demandée si la carte et le compte la permettent ;
+  // sinon Stripe retombe sur la durée standard de 7 jours.
+  const intentParams = {
+    amount: Math.round(amount * 100),
+    currency: 'eur',
+    capture_method: 'manual' as const,
+    metadata: {
+      reservationId: r.id,
+      reservationNumber: r.reservation_number,
+      customerId: r.customer_id,
+      type: 'deposit',
+    },
+    automatic_payment_methods: { enabled: true },
+    description: `Caution ${r.reservation_number} — JJ AUTO 92`,
+  }
   let intent
   try {
-    intent = await getStripe().paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'eur',
-      capture_method: 'manual',
-      metadata: {
-        reservationId: r.id,
-        reservationNumber: r.reservation_number,
-        customerId: r.customer_id,
-        type: 'deposit',
-      },
-      automatic_payment_methods: { enabled: true },
-      description: `Caution ${r.reservation_number} — JJ AUTO 92`,
-    })
+    try {
+      intent = await getStripe().paymentIntents.create({
+        ...intentParams,
+        payment_method_options: { card: { request_extended_authorization: 'if_available' } },
+      })
+    } catch (extErr) {
+      console.error('[Stripe] autorisation étendue indisponible, repli sur 7 jours:', extErr)
+      intent = await getStripe().paymentIntents.create(intentParams)
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erreur Stripe'
     return NextResponse.json({ error: `Stripe : ${msg}` }, { status: 502 })
