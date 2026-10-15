@@ -55,12 +55,15 @@ export default async function AdminReservationDetailPage({ params }: Props) {
     web: 'Web', telephone: 'Téléphone', admin: 'Admin', partenaire: 'Partenaire',
   }
 
-  const payments: Array<{ id: string; stripe_payment_intent_id: string; amount: number; status: string; type: string; created_at: string }> = r.payments ?? []
+  type PaymentRow = { id: string; stripe_payment_intent_id: string; amount: number; status: string; type: string; created_at: string }
+  type DepositRow = { id: string; stripe_payment_intent_id: string; amount: number; status: string; authorized_at: string | null; captured_amount: number | null; released_at: string | null }
+  // PostgREST renvoie un objet (et non un tableau) quand la relation est unique (deposits.reservation_id UNIQUE)
+  const payments: PaymentRow[] = ([] as PaymentRow[]).concat(r.payments ?? [])
   const paidOnline = payments
     .filter((p) => p.status === 'succeeded')
     .reduce((sum, p) => sum + Number(p.amount), 0)
   const balanceToCollect = Math.max(0, Number(r.total_amount ?? 0) - paidOnline)
-  const deposits: Array<{ id: string; stripe_payment_intent_id: string; amount: number; status: string; authorized_at: string | null; captured_amount: number | null; released_at: string | null }> = r.deposits ?? []
+  const deposits: DepositRow[] = ([] as DepositRow[]).concat(r.deposits ?? [])
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">

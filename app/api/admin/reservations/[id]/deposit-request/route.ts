@@ -35,21 +35,21 @@ export async function POST(
 
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jjautomobiles.fr').replace(/\/$/, '')
 
-  // Caution déjà demandée : on réutilise la demande en attente, on refuse s'il y en a une active
+  // Une seule caution par réservation (deposits.reservation_id est UNIQUE)
   const { data: existing } = await db
     .from('deposits')
     .select('id, status')
     .eq('reservation_id', id)
-    .in('status', ['pending', 'authorized', 'partially_captured'])
-    .order('created_at', { ascending: false })
-    .limit(1)
     .maybeSingle()
 
-  if (existing?.status === 'authorized' || existing?.status === 'partially_captured') {
+  if (existing?.status === 'pending') {
+    return NextResponse.json({ depositId: existing.id, url: `${siteUrl}/caution/${existing.id}` })
+  }
+  if (existing && ['authorized', 'partially_captured'].includes(existing.status)) {
     return NextResponse.json({ error: 'Une caution est déjà autorisée pour cette réservation' }, { status: 409 })
   }
-  if (existing) {
-    return NextResponse.json({ depositId: existing.id, url: `${siteUrl}/caution/${existing.id}` })
+  if (existing?.status === 'captured') {
+    return NextResponse.json({ error: 'La caution de cette réservation a déjà été encaissée' }, { status: 409 })
   }
 
   let intent
@@ -72,19 +72,22 @@ export async function POST(
     return NextResponse.json({ error: `Stripe : ${msg}` }, { status: 502 })
   }
 
-  const { data: dep, error: depErr } = await db
-    .from('deposits')
-    .insert({
-      reservation_id: r.id,
-      customer_id: r.customer_id,
-      stripe_payment_intent_id: intent.id,
-      amount,
-      currency: 'eur',
-      captured_amount: 0,
-      status: 'pending',
-    })
-    .select('id')
-    .single()
+  // Caution précédemment libérée ou expirée : on réutilise la ligne avec une nouvelle pré-autorisation
+  const row = {
+    reservation_id: r.id,
+    customer_id: r.customer_id,
+    stripe_payment_intent_id: intent.id,
+    amount,
+    currency: 'eur',
+    captured_amount: 0,
+    status: 'pending',
+    authorized_at: null,
+    authorization_expiry: null,
+    released_at: null,
+  }
+  const { data: dep, error: depErr } = existing
+    ? await db.from('deposits').update(row).eq('id', existing.id).select('id').single()
+    : await db.from('deposits').insert(row).select('id').single()
 
   if (depErr || !dep) {
     try { await getStripe().paymentIntents.cancel(intent.id) } catch {}
