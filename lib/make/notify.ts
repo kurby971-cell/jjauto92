@@ -61,3 +61,11 @@ export async function notifyMakePaymentReceived(payload: {
   if (!url) return
   await postToMake(url, { event: 'payment.received', ...payload })
 }
+
+// Résumé quotidien d'alertes pour l'administrateur (scénario Make dédié → e-mail).
+export async function notifyMakeAdminDigest(payload: { subject: string; html: string; total: number }) {
+  const url = process.env.MAKE_WEBHOOK_URL_ALERT
+  if (!url) return false
+  await postToMake(url, { event: 'admin.daily_alerts', ...payload })
+  return true
+}

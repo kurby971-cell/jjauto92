@@ -7,6 +7,7 @@ import { breadcrumbListSchema, SITE_URL } from '@/lib/schema'
 export const metadata: Metadata = {
   title: 'Nos véhicules — JJ AUTO 92',
   description: 'Catalogue de véhicules disponibles à la location en Île-de-France (92). Assurance incluse, livraison possible, tarifs transparents.',
+  alternates: { canonical: '/vehicules' },
 }
 
 export default async function VehiculesPage() {
