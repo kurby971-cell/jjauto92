@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import StatusBadge from '@/components/admin/StatusBadge'
 import DepositRequest from '@/components/admin/DepositRequest'
 import CashBalance from '@/components/admin/CashBalance'
+import ResendConfirmation from '@/components/admin/ResendConfirmation'
 
 export const metadata: Metadata = { title: 'Détail réservation — Admin JJ AUTO 92' }
 
@@ -181,6 +182,7 @@ export default async function AdminReservationDetailPage({ params }: Props) {
           {(r.deposit_amount ?? 0) > 0 && (
             <p className="text-xs text-gray-400 mt-2">Caution : {fmtMoney(r.deposit_amount)}</p>
           )}
+          {['confirmed', 'active'].includes(r.status) && <ResendConfirmation reservationId={r.id} />}
         </Section>
 
         {/* Paiements */}
