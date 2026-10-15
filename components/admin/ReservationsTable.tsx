@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import StatusBadge from './StatusBadge'
 
 export interface ReservationRow {
@@ -220,7 +221,7 @@ export default function ReservationsTable({ reservations }: { reservations: Rese
               {filtered.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <span className="font-mono text-xs text-[#0D1B2A] font-bold">{r.reservation_number}</span>
+                    <Link href={`/admin/reservations/${r.id}`} className="font-mono text-xs text-[#0D1B2A] font-bold underline decoration-dotted underline-offset-2 hover:text-[#C9A84C]">{r.reservation_number}</Link>
                     <p className="text-gray-400 text-[10px] mt-0.5">{new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
                   </td>
                   <td className="px-4 py-3">
