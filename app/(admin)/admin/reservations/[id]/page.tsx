@@ -37,7 +37,7 @@ export default async function AdminReservationDetailPage({ params }: Props) {
       daily_rate_snapshot, base_amount, options_amount, discount_amount,
       total_amount, deposit_amount, options,
       mileage_start, mileage_end, fuel_level_start, fuel_level_end,
-      notes, admin_notes, cancellation_reason,
+      admin_notes, cancellation_reason,
       vehicles(id, brand, model, year, license_plate, category, fuel_type, transmission),
       customers(id, first_name, last_name, email, phone, is_verified, is_blacklisted, driving_license_number),
       payments(id, stripe_payment_intent_id, amount, status, type, created_at),
@@ -229,14 +229,8 @@ export default async function AdminReservationDetailPage({ params }: Props) {
         )}
 
         {/* Notes */}
-        {(r.notes || r.admin_notes || r.cancellation_reason) && (
+        {(r.admin_notes || r.cancellation_reason) && (
           <Section title="Notes">
-            {r.notes && (
-              <div className="mb-3">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Client</p>
-                <p className="text-sm text-gray-700">{r.notes}</p>
-              </div>
-            )}
             {r.admin_notes && (
               <div className="mb-3">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
