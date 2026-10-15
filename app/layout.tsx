@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 const INDEXABLE = process.env.SITE_INDEXABLE === 'true'
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jjautomobiles.fr'),
   robots: INDEXABLE
     ? { index: true, follow: true }
     : { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false, noimageindex: true } },
