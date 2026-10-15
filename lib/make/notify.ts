@@ -59,7 +59,29 @@ export async function notifyMakePaymentReceived(payload: {
 }) {
   const url = process.env.MAKE_WEBHOOK_URL_PAYMENT
   if (!url) return
-  await postToMake(url, { event: 'payment.received', ...payload })
+  await postToMake(url, { event: 'payment.received', ...paymentWording(payload), ...payload })
+}
+
+const eur = (n: number) => `${n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
+
+// Textes du mail de confirmation selon la situation : acompte (solde restant) ou règlement intégral.
+function paymentWording(p: { amount: number; totalAmount?: number; balanceDue?: number }) {
+  const balance = p.balanceDue ?? (p.totalAmount != null ? Math.max(0, Math.round((p.totalAmount - p.amount) * 100) / 100) : 1)
+  const base = 'votre permis de conduire, votre pièce d\u2019identité en cours de validité'
+  if (balance > 0) {
+    const pct = p.totalAmount ? Math.round((p.amount / p.totalAmount) * 100) : 20
+    const total = p.totalAmount != null ? ` (total de la location : ${eur(p.totalAmount)})` : ''
+    return {
+      paymentType: 'acompte',
+      paymentHtml: `<p>Votre acompte de <strong>${eur(p.amount)}</strong> (${pct} %) a bien été reçu par carte.</p><p>Reste à régler le jour de la prise du véhicule : <strong>${eur(balance)}</strong>${total}.</p>`,
+      bringList: `${base}, votre carte bancaire et le solde de la location`,
+    }
+  }
+  return {
+    paymentType: 'integral',
+    paymentHtml: `<p>Votre règlement de <strong>${eur(p.amount)}</strong> a bien été reçu par carte : votre location est réglée en totalité, aucun solde n\u2019est à prévoir.</p>`,
+    bringList: `${base} et votre carte bancaire`,
+  }
 }
 
 // Résumé quotidien d'alertes pour l'administrateur (scénario Make dédié → e-mail).
