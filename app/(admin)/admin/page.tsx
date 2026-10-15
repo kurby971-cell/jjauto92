@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
     { count: failedPayments },
     { data: upcoming },
   ] = await Promise.all([
-    db.from('payments').select('amount').eq('status', 'succeeded').gte('created_at', firstOfMonth),
+    db.from('payments').select('amount').eq('status', 'succeeded').not('stripe_payment_intent_id', 'is', null).gte('created_at', firstOfMonth),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     db.from('reservations').select('*', { count: 'exact', head: true }).eq('start_date', today).in('status', ['confirmed', 'active']),

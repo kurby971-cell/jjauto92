@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import StatusBadge from '@/components/admin/StatusBadge'
 import DepositRequest from '@/components/admin/DepositRequest'
+import CashBalance from '@/components/admin/CashBalance'
 
 export const metadata: Metadata = { title: 'Détail réservation — Admin JJ AUTO 92' }
 
@@ -55,7 +56,7 @@ export default async function AdminReservationDetailPage({ params }: Props) {
     web: 'Web', telephone: 'Téléphone', admin: 'Admin', partenaire: 'Partenaire',
   }
 
-  type PaymentRow = { id: string; stripe_payment_intent_id: string; amount: number; status: string; type: string; created_at: string }
+  type PaymentRow = { id: string; stripe_payment_intent_id: string | null; amount: number; status: string; type: string; created_at: string }
   type DepositRow = { id: string; stripe_payment_intent_id: string; amount: number; status: string; authorized_at: string | null; captured_amount: number | null; released_at: string | null }
   // PostgREST renvoie un objet (et non un tableau) quand la relation est unique (deposits.reservation_id UNIQUE)
   const payments: PaymentRow[] = ([] as PaymentRow[]).concat(r.payments ?? [])
@@ -168,11 +169,14 @@ export default async function AdminReservationDetailPage({ params }: Props) {
             <span className="text-xl font-extrabold text-[#0D1B2A]">{fmtMoney(r.total_amount ?? 0)}</span>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
-            <Row label="Acompte carte encaissé" value={fmtMoney(paidOnline)} />
+            <Row label="Déjà encaissé (carte + espèces)" value={fmtMoney(paidOnline)} />
             <div className="flex justify-between items-baseline">
               <span className="text-sm font-bold text-amber-700">Reste à encaisser en espèces</span>
               <span className="text-lg font-extrabold text-amber-700">{fmtMoney(balanceToCollect)}</span>
             </div>
+            {balanceToCollect > 0 && ['confirmed', 'active', 'completed'].includes(r.status) && (
+              <CashBalance reservationId={r.id} amount={balanceToCollect} />
+            )}
           </div>
           {(r.deposit_amount ?? 0) > 0 && (
             <p className="text-xs text-gray-400 mt-2">Caution : {fmtMoney(r.deposit_amount)}</p>
@@ -188,7 +192,7 @@ export default async function AdminReservationDetailPage({ params }: Props) {
                   <span className="text-sm text-gray-700 font-medium">{fmtMoney(p.amount)}</span>
                   <StatusBadge status={p.status} type="reservation" />
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 font-mono">{p.stripe_payment_intent_id}</p>
+                <p className="text-xs text-gray-400 mt-0.5 font-mono">{p.stripe_payment_intent_id ?? 'Espèces'}</p>
                 <p className="text-xs text-gray-400">{fmtDateTime(p.created_at)}</p>
               </div>
             ))}
