@@ -175,7 +175,7 @@ export default function Step3Payment({ vehicle, draft }: Props) {
       </button>
 
       <p className="text-center text-xs text-gray-400">
-        Caution de {vehicle.deposit_amount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} € déjà pré-autorisée · Restituée en fin de location
+        Caution de {vehicle.deposit_amount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} € : pré-autorisation par carte à la prise du véhicule · Aucun débit · Libérée au retour
       </p>
 
     </div>

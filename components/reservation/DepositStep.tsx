@@ -7,9 +7,10 @@ interface Props {
   depositAmount: number
   returnUrl: string
   onAuthorized: () => void
+  standalone?: boolean
 }
 
-export default function DepositStep({ depositAmount, returnUrl, onAuthorized }: Props) {
+export default function DepositStep({ depositAmount, returnUrl, onAuthorized, standalone }: Props) {
   const stripe = useStripe()
   const elements = useElements()
   const [status, setStatus] = useState<'idle' | 'authorizing' | 'error'>('idle')
@@ -44,8 +45,8 @@ export default function DepositStep({ depositAmount, returnUrl, onAuthorized }: 
     <div className="space-y-6">
       <div className="bg-navy rounded-2xl p-5 flex items-center justify-between">
         <div>
-          <p className="text-gold text-[11px] font-bold uppercase tracking-widest mb-1">Étape 1/2 — Caution</p>
-          <p className="text-white text-sm">Pré-autorisation avant la location</p>
+          <p className="text-gold text-[11px] font-bold uppercase tracking-widest mb-1">{standalone ? 'Caution' : 'Étape 1/2 — Caution'}</p>
+          <p className="text-white text-sm">{standalone ? 'Pré-autorisation à la prise du véhicule' : 'Pré-autorisation avant la location'}</p>
         </div>
         <span className="text-gold font-extrabold text-2xl">
           {depositAmount.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €

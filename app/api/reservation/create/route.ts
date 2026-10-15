@@ -273,42 +273,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: payErr.message }, { status: 500 })
   }
 
-  // 8. Create Stripe PaymentIntent for deposit (capture_method: manual = pre-authorization)
-  let depositClientSecret: string | null = null
-  if (depositAmount > 0) {
-    try {
-      const depositIntent = await getStripe().paymentIntents.create({
-        amount: Math.round(depositAmount * 100),
-        currency: 'eur',
-        capture_method: 'manual',
-        metadata: {
-          reservationId: reservation.id,
-          reservationNumber: reservation.reservation_number,
-          customerId,
-          type: 'deposit',
-        },
-        automatic_payment_methods: { enabled: true },
-        description: `Caution ${reservation.reservation_number} — JJ AUTO 92`,
-      })
-      depositClientSecret = depositIntent.client_secret
-
-      const { error: depErr } = await db.from('deposits').insert({
-        reservation_id: reservation.id,
-        customer_id: customerId,
-        stripe_payment_intent_id: depositIntent.id,
-        amount: depositAmount,
-        currency: 'eur',
-        captured_amount: 0,
-        status: 'pending',
-      })
-      if (depErr) {
-        console.error('[reservation/create] deposits insert:', depErr)
-      }
-    } catch (err) {
-      console.error('[reservation/create] stripe deposit paymentIntent:', err)
-      // Non-fatal: reservation + rental payment are valid; admin handles deposit manually
-    }
-  }
+  // 8. La caution (pré-autorisation) n'est PAS prise en ligne : une pré-autorisation
+  //    carte expire au bout de 7 jours. Elle est demandée à la prise du véhicule
+  //    depuis l'admin (lien / QR code). Voir /api/admin/reservations/[id]/deposit-request.
+  const depositClientSecret: string | null = null
 
   // Notify Make.com — fire-and-forget
   const { data: vInfo } = await db

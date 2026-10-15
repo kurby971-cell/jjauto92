@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import StatusBadge from '@/components/admin/StatusBadge'
+import DepositRequest from '@/components/admin/DepositRequest'
 
 export const metadata: Metadata = { title: 'Détail réservation — Admin JJ AUTO 92' }
 
@@ -192,7 +193,7 @@ export default async function AdminReservationDetailPage({ params }: Props) {
         )}
 
         {/* Cautions */}
-        {deposits.length > 0 && (
+        {(deposits.length > 0 || (['confirmed', 'active'].includes(r.status) && (r.deposit_amount ?? 0) > 0)) && (
           <Section title="Cautions">
             {deposits.map((d) => (
               <div key={d.id} className="py-1.5 border-b border-gray-50 last:border-0">
@@ -206,6 +207,11 @@ export default async function AdminReservationDetailPage({ params }: Props) {
                 <p className="text-xs text-gray-400 font-mono">{d.stripe_payment_intent_id}</p>
               </div>
             ))}
+            {['confirmed', 'active'].includes(r.status) &&
+              (r.deposit_amount ?? 0) > 0 &&
+              !deposits.some((d) => ['authorized', 'partially_captured'].includes(d.status)) && (
+                <DepositRequest reservationId={r.id} amount={Number(r.deposit_amount)} />
+              )}
           </Section>
         )}
 

@@ -45,7 +45,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: 'À quoi sert la caution et quand est-elle restituée ?',
-        a: "La caution est une préautorisation bancaire (non débitée) qui couvre d'éventuels dommages ou retards. En l'absence d'incident, elle est libérée dans un délai de 5 à 10 jours ouvrés après le retour du véhicule.",
+        a: "La caution est une préautorisation bancaire (non débitée), effectuée sur votre carte à la prise du véhicule, qui couvre d'éventuels dommages ou retards. En l'absence d'incident, elle est libérée dans un délai de 5 à 10 jours ouvrés après le retour du véhicule.",
       },
       {
         q: 'Le montant de la caution varie-t-il selon le véhicule ?',

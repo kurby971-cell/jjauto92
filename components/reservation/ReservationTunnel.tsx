@@ -251,10 +251,8 @@ export default function ReservationTunnel({ vehicle, rentalOptions, unavailabili
           <p className="text-gray-500 text-sm mt-3">
             {step < 3 ? (
               <>Étape {step} sur 3</>
-            ) : depositClientSecret ? (
-              <>Étape 3 sur 3 — Pré-autorisation caution (1/2)</>
             ) : (
-              <>Étape 3 sur 3 — Paiement de l&apos;acompte (2/2)</>
+              <>Étape 3 sur 3 — Paiement de l&apos;acompte</>
             )}
           </p>
         </div>

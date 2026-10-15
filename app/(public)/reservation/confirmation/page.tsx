@@ -147,7 +147,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
                 {[
                   'Vous recevrez un email de confirmation avec tous les détails.',
                   `Présentez-vous le ${fmtDate(data.start_date)} à partir de 9h au 1 Allée de Lorraine, 92000 Nanterre.`,
-                  'Apportez votre permis de conduire, votre pièce d\'identité et le solde de la location en espèces (la caution est déjà pré-autorisée).',
+                  'Apportez votre permis de conduire, votre pièce d\'identité et le solde de la location en espèces. La caution sera pré-autorisée sur votre carte à la prise du véhicule (aucun débit).',
                   'Notre équipe vous remettra les clés et vous fera signer l\'état des lieux.',
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-400">
